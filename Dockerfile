@@ -1047,12 +1047,30 @@ RUN \
   wget $WGET_OPTS -O ffmpeg.tar.bz2 "$FFMPEG_URL" && \
   echo "$FFMPEG_SHA256  ffmpeg.tar.bz2" | sha256sum -c - && \
   tar $TAR_OPTS ffmpeg.tar.bz2
-  
-RUN cd ffmpeg* && FDKAAC_FLAGS=$(if [[ -n "$ENABLE_FDKAAC" ]] ;then echo " --enable-libfdk-aac --enable-nonfree " ;else echo ""; fi) && \
+
+RUN apk add --no-cache git cmake
+
+RUN \
+  git clone -b master --depth 1 https://github.com/microsoft/mimalloc.git mimalloc && \
+  cd mimalloc && \
+  mkdir build && \
+  cd build && \
+  cmake -D CMAKE_BUILD_TYPE=Release -DMI_OVERRIDE=OFF -DMI_INSTALL_TOPLEVEL=ON .. && \
+  make -j$(nproc) && \
+  make install
+
+# RUN apk add --no-cache mimalloc2-dev
+
+ADD patches/* ./patches/
+
+RUN cd ffmpeg* && \
+  patch -u <../patches/mimalloc.patch && \
+  FDKAAC_FLAGS=$(if [[ -n "$ENABLE_FDKAAC" ]] ;then echo " --enable-libfdk-aac --enable-nonfree " ;else echo ""; fi) && \
   sed -i 's/add_ldexeflags -fPIE -pie/add_ldexeflags -fPIE -static-pie/' configure && \
   ./configure \
+  --custom_allocator=mimalloc \
   --pkg-config-flags="--static" \
-  --extra-cflags="-fopenmp -O3" \
+  --extra-cflags="-fopenmp -O3 " \
   --extra-ldflags="-fopenmp -Wl,--allow-multiple-definition -Wl,-z,stack-size=2097152" \
   --toolchain=hardened \
   --disable-debug \
@@ -1171,7 +1189,7 @@ RUN /checkdupsym /ffmpeg-*
 # some basic fonts that don't take up much space
 RUN apk add $APK_OPTS font-terminus font-inconsolata font-dejavu font-awesome
 
-FROM alpine AS final1
+FROM scratch AS final1
 COPY --from=builder /usr/local/bin/ffmpeg /
 COPY --from=builder /usr/local/bin/ffprobe /
 COPY --from=builder /versions.json /
@@ -1196,10 +1214,10 @@ RUN ["/ffmpeg", "-hide_banner", "-buildconf"]
 # RUN ["/ffprobe", "-i", "https://github.githubassets.com/favicons/favicon.svg"]
 
 # clamp all files into one layer
-FROM alpine AS final2
+FROM scratch AS final2
 COPY --from=final1 / /
 
 
 FROM final2
-LABEL maintainer="Mattias Wadman mattias.wadman@gmail.com"
+LABEL maintainer="Hugefiver <i@iruri.moe>"
 ENTRYPOINT ["/ffmpeg"]
