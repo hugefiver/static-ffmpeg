@@ -1,6 +1,6 @@
 # bump: alpine /ALPINE_VERSION=alpine:([\d.]+)/ docker:alpine|^3
 # bump: alpine link "Release notes" https://alpinelinux.org/posts/Alpine-$LATEST-released.html
-ARG ALPINE_VERSION=alpine:3.20.1
+ARG ALPINE_VERSION=alpine:3.20.2
 FROM $ALPINE_VERSION AS builder
 
 # Alpine Package Keeper options
@@ -96,9 +96,9 @@ RUN sed -i 's/-lvmaf /-lvmaf -lstdc++ /' /usr/local/lib/pkgconfig/libvmaf.pc
 # bump: glib /GLIB_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/glib.git|^2
 # bump: glib after ./hashupdate Dockerfile GLIB $LATEST
 # bump: glib link "NEWS" https://gitlab.gnome.org/GNOME/glib/-/blob/main/NEWS?ref_type=heads
-ARG GLIB_VERSION=2.81.0
+ARG GLIB_VERSION=2.81.2
 ARG GLIB_URL="https://download.gnome.org/sources/glib/2.81/glib-$GLIB_VERSION.tar.xz"
-ARG GLIB_SHA256=1665188ed9cc941c0a189dc6295e6859872523d1bfc84a5a84732a7ae87b02e4
+ARG GLIB_SHA256=ce84b241b84750a3d42c78c456976fac57f2d2726a110f2ba059c052a4349d1c
 RUN \
   wget $WGET_OPTS -O glib.tar.xz "$GLIB_URL" && \
   echo "$GLIB_SHA256  glib.tar.xz" | sha256sum --status -c - && \
@@ -167,9 +167,9 @@ RUN \
 # bump: librsvg /LIBRSVG_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/librsvg.git|^2
 # bump: librsvg after ./hashupdate Dockerfile LIBRSVG $LATEST
 # bump: librsvg link "NEWS" https://gitlab.gnome.org/GNOME/librsvg/-/blob/master/NEWS
-ARG LIBRSVG_VERSION=2.58.92
+ARG LIBRSVG_VERSION=2.58.93
 ARG LIBRSVG_URL="https://download.gnome.org/sources/librsvg/2.58/librsvg-$LIBRSVG_VERSION.tar.xz"
-ARG LIBRSVG_SHA256=edd55458dafd374d94d8b2cd0cd623d2d766d2916de2459e2d3add9236bfea83
+ARG LIBRSVG_SHA256=f116eaf8196fc8261b0bbbdf996a4fe1bc97dc25664f953b328194d049a0dada
 RUN \
   wget $WGET_OPTS -O librsvg.tar.xz "$LIBRSVG_URL" && \
   echo "$LIBRSVG_SHA256  librsvg.tar.xz" | sha256sum --status -c - && \
@@ -327,7 +327,7 @@ RUN \
 # bump: libgme after ./hashupdate Dockerfile LIBGME $LATEST
 # bump: libgme link "Source diff $CURRENT..$LATEST" https://github.com/libgme/game-music-emu/compare/$CURRENT..v$LATEST
 ARG LIBGME_URL="https://github.com/libgme/game-music-emu.git"
-ARG LIBGME_COMMIT=ee45d3d9df275dfcf89c0e764477e106c46f996c
+ARG LIBGME_COMMIT=05a2aa29e8eae29316804fdd28ceaa96c74a1531
 RUN \
   git clone "$LIBGME_URL" && \
   cd game-music-emu && git checkout --recurse-submodules $LIBGME_COMMIT && \
@@ -678,9 +678,9 @@ RUN \
 # bump: svtav1 /SVTAV1_VERSION=([\d.]+)/ https://gitlab.com/AOMediaCodec/SVT-AV1.git|*
 # bump: svtav1 after ./hashupdate Dockerfile SVTAV1 $LATEST
 # bump: svtav1 link "Release notes" https://gitlab.com/AOMediaCodec/SVT-AV1/-/releases/v$LATEST
-ARG SVTAV1_VERSION=2.1.2
+ARG SVTAV1_VERSION=2.2.1
 ARG SVTAV1_URL="https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-AV1-v$SVTAV1_VERSION.tar.bz2"
-ARG SVTAV1_SHA256=a1d95875f7539d49f7c8fdec0623fbf984804a168da6289705d53268e3b38412
+ARG SVTAV1_SHA256=3fd002b88816506f84b6d624659be5cbadb4cdf5a11258a5cbc6bfc488c82d01
 RUN \
   wget $WGET_OPTS -O svtav1.tar.bz2 "$SVTAV1_URL" && \
   echo "$SVTAV1_SHA256  svtav1.tar.bz2" | sha256sum -c - && \
@@ -877,8 +877,8 @@ RUN \
 # bump: x265 /X265_VERSION=([[:xdigit:]]+)/ gitrefs:https://bitbucket.org/multicoreware/x265_git.git|re:#^refs/heads/master$#|@commit
 # bump: x265 after ./hashupdate Dockerfile X265 $LATEST
 # bump: x265 link "Source diff $CURRENT..$LATEST" https://bitbucket.org/multicoreware/x265_git/branches/compare/$LATEST..$CURRENT#diff
-ARG X265_VERSION=0dfbe6dee33263d2bc8a12a06b7e3925f276560d
-ARG X265_SHA256=3acef49f87967e9a257498c13a2d69c5f6d14472eebe4918eb85a5ebbe2f990e
+ARG X265_VERSION=c1686da954da90a84d3a6bbecf567c3cfa0269e8
+ARG X265_SHA256=65c64f25a8ead0222d3a0c88800d4d0c309847e0730c6004c6239e05aaa71dae
 ARG X265_URL="https://bitbucket.org/multicoreware/x265_git/get/$X265_VERSION.tar.bz2"
 # CMAKEFLAGS issue
 # https://bitbucket.org/multicoreware/x265_git/issues/620/support-passing-cmake-flags-to-multilibsh
@@ -1027,13 +1027,30 @@ RUN \
   sed -i 's/-ljxl_cms/-ljxl_cms -lstdc++ /' /usr/local/lib/pkgconfig/libjxl_cms.pc && \
   sed -i 's/-ljxl_threads/-ljxl_threads -lstdc++ /' /usr/local/lib/pkgconfig/libjxl_threads.pc
 
+# bump: libzmq /LIBZMQ_VERSION=([\d.]+)/ https://github.com/zeromq/libzmq.git|*
+# bump: libzmq after ./hashupdate Dockerfile LIBZMQ $LATEST
+# bump: libzmq link "NEWS" https://github.com/zeromq/libzmq/blob/master/NEWS
+# ARG LIBZMQ_VERSION=4.3.5
+# ARG LIBZMQ_URL="https://github.com/zeromq/libzmq/releases/download/v${LIBZMQ_VERSION}/zeromq-${LIBZMQ_VERSION}.tar.gz"
+# ARG LIBZMQ_SHA256=6653ef5910f17954861fe72332e68b03ca6e4d9c7160eb3a8de5a5a913bfab43
+# RUN \
+#   wget $WGET_OPTS -O zmq.tar.gz "$LIBZMQ_URL" && \
+#   echo "$LIBZMQ_SHA256  zmq.tar.gz" | sha256sum -c - && \
+#   tar $TAR_OPTS zmq.tar.gz && cd zeromq-* && \
+#   # fix sha1_init symbol collision with libssh
+#   grep -r -l sha1_init external/sha1* | xargs sed -i 's/sha1_init/zeromq_sha1_init/g' && \
+#   ./configure \
+#     --disable-shared \
+#     --enable-static && \
+#   make -j$(nproc) install
+
 # bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|*
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
 # bump: ffmpeg link "Changelog" https://github.com/FFmpeg/FFmpeg/blob/n$LATEST/Changelog
 # bump: ffmpeg link "Source diff $CURRENT..$LATEST" https://github.com/FFmpeg/FFmpeg/compare/n$CURRENT..n$LATEST
-ARG FFMPEG_VERSION=7.0.1
+ARG FFMPEG_VERSION=7.0.2
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
-ARG FFMPEG_SHA256=5e77e84b6434d656106fafe3bceccc77176449014f3eba24d33db3fbd0939dc9
+ARG FFMPEG_SHA256=1ed250407ea8f955cca2f1139da3229fbc13032a0802e4b744be195865ff1541
 ARG ENABLE_FDKAAC=
 # sed changes --toolchain=hardened -pie to -static-pie
 #
@@ -1173,6 +1190,7 @@ RUN \
   libxml2: env.LIBXML2_VERSION, \
   libxvid: env.XVID_VERSION, \
   libzimg: env.ZIMG_VERSION, \
+  libzmq: env.LIBZMQ_VERSION, \
   openssl: env.OPENSSL_VERSION, \
   }' > /versions.json
 

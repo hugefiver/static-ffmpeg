@@ -16,20 +16,20 @@ Use `mwader/static-ffmpeg` from [Docker Hub](https://hub.docker.com/r/mwader/sta
 
 In Dockerfile
 ```Dockerfile
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffprobe /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/local/bin/
 ```
 
 Run directly
 ```sh
-docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.1 -i file.wav file.mp3
-docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.1 -i file.wav
+docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.2 -i file.wav file.mp3
+docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.2 -i file.wav
 ```
 
 As shell alias
 ```sh
-alias ffmpeg='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.1'
-alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.1'
+alias ffmpeg='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.2'
+alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.2'
 ```
 
 ### Libraries
@@ -87,6 +87,7 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 - [libxml2](https://gitlab.gnome.org/GNOME/libxml2)
 - [libxvid](https://labs.xvid.com)
 - [libzimg](https://github.com/sekrit-twc/zimg)
+- [libzmq](https://github.com/zeromq/libzmq)
 - [openssl](https://openssl.org)
 - and all native ffmpeg codecs, formats, filters etc.
 
@@ -151,8 +152,8 @@ EOF
 2. Copy the `ffmpeg` (and `ffprobe`) binaries.
 
 ```Dockerfile
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffmpeg /usr/bin/
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffprobe /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/bin/
 ```
 
 3. Make sure the `/app/fonts` directory exist in your image.
@@ -181,8 +182,8 @@ EOF
 
 FROM base as ffmpeg
 
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffmpeg /usr/bin/
-COPY --from=mwader/static-ffmpeg:7.0.1 /ffprobe /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/bin/
 
 FROM ffmpeg AS app
 
@@ -240,7 +241,7 @@ Since version 5.0.1-3 dockerhub images are multi-arch amd64 and arm64 images.
 
 This will copy `ffmpeg` and `ffprobe` to the current directory:
 ```
-docker run --rm -v "$PWD:/out" $(echo -e 'FROM alpine\nCOPY --from=mwader/static-ffmpeg:7.0.1 /ff* /\nENTRYPOINT cp /ff* /out' | docker build -q -)
+docker run --rm -v "$PWD:/out" $(echo -e 'FROM alpine\nCOPY --from=mwader/static-ffmpeg:7.0.2 /ff* /\nENTRYPOINT cp /ff* /out' | docker build -q -)
 ```
 
 #### Quickly see what versions an image was built with
