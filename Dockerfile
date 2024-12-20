@@ -1153,7 +1153,7 @@ RUN cd ffmpeg* && \
   ./configure \
   --custom_allocator=mimalloc \
   --pkg-config-flags="--static" \
-  --extra-cflags="-fopenmp -O3 " \
+  --extra-cflags="-fopenmp -O3" \
   --extra-ldflags="-fopenmp -Wl,--allow-multiple-definition -Wl,-z,stack-size=2097152" \
   --toolchain=hardened \
   --disable-debug \
@@ -1165,8 +1165,8 @@ RUN cd ffmpeg* && \
   $FDKAAC_FLAGS \
   --disable-encoders \
   --disable-decoders \
-  --enable-encoder=aac*,ac3*,apng,gif,flac,h263*,jpeg*,libaom_av1,libcodec2,libjxl,libmp3lame,libopenh264,libopenjpeg,libopus,librav1e,libsvtav1,libvpx*,libwebp,libx26*,libxavs*,ljpeg,mjpeg,mpeg4,opus,png,rawvideo,tiff,text,yuv4 \
-  --enable-decoder=aac*,ac3*,apng,av1,gif,flac,h261,h263*,h264,h264_v4l2m2m,hevc,jpeg*,libaom_av1,libcodec2,libjxl,libopenh264,libopenjpeg,libopus,librav1e,libsvtav1,libvpx*,mjpeg,mpeg4,mp3*,mpeg1vieo,mpeg2video,mpeg4,mpegvideo,msmpeg*,opus,png,rawvideo,srt,tiff,text,vp7,vp8,vp9,yuv4 \
+  --enable-encoder=aac*,ac3*,apng,av1*,flac,flv,gif,h263*,h264*,hevc*,jpeg*,libaom_av1,libcodec2,libjxl,liblc3,libmp3lame,libopencore_*,libopenh264,libopenjpeg,libopus,librav1e,libsvtav1,libvpx*,libvvenc,libwebp*,libx26*,libxavs*,ljpeg,mjpeg*,mp3,mpeg2*,mpeg4*,opus,png,rawvideo,text,tiff,vp8*,vp9*,wav*,webvtt,yuv4,zlib \
+  --enable-decoder=aac*,ac3*,apng,av1*,flac,flv,gif,h261,h263*,h264*,h264_v4l2m2m,hevc*,jpeg*,libaom_av1,libcodec2,libdav1d,libfdk_aac,libjxl,liblc3,libopenh264,libopencore_*,libopenjpeg,libopenh264,libopus,librav1e,libsvtav1,libvpx*,mjpeg*,mp3*,mpeg1vieo,mpeg2*,mpeg2video,mpeg4*,mpegvideo,msmpeg*,opus,png,rawvideo,srt,text,tiff,vp7,vp8*,vp9*,vvc*,wav*,wbmp,webp,webvtt,wmv*,yuv4,zlib \
   --enable-gray \
   --enable-lcms2 \
   --enable-libaom \
