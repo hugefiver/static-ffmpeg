@@ -1,6 +1,6 @@
 # bump: alpine /ALPINE_VERSION=alpine:([\d.]+)/ docker:alpine|^3
 # bump: alpine link "Release notes" https://alpinelinux.org/posts/Alpine-$LATEST-released.html
-ARG ALPINE_VERSION=alpine:3.20.2
+ARG ALPINE_VERSION=alpine:3.20.3
 FROM $ALPINE_VERSION AS builder
 
 # Alpine Package Keeper options
@@ -8,6 +8,7 @@ ARG APK_OPTS=""
 
 RUN apk add --no-cache $APK_OPTS \
   coreutils \
+  pkgconfig \
   wget \
   rust cargo cargo-c \
   openssl-dev openssl-libs-static \
@@ -48,11 +49,12 @@ RUN apk add --no-cache $APK_OPTS \
   xz-dev xz-static \
   python3 py3-packaging \
   linux-headers \
-  curl
+  curl \
+  libdrm-dev
 
 # linux-headers need by rtmpdump
 # python3 py3-packaging needed by glib
-  
+
 # -O3 makes sure we compile with optimization. setting CFLAGS/CXXFLAGS seems to override
 # default automake cflags.
 # -static-libgcc is needed to make gcc not include gcc_s as "as-needed" shared library which
@@ -96,9 +98,9 @@ RUN sed -i 's/-lvmaf /-lvmaf -lstdc++ /' /usr/local/lib/pkgconfig/libvmaf.pc
 # bump: glib /GLIB_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/glib.git|^2
 # bump: glib after ./hashupdate Dockerfile GLIB $LATEST
 # bump: glib link "NEWS" https://gitlab.gnome.org/GNOME/glib/-/blob/main/NEWS?ref_type=heads
-ARG GLIB_VERSION=2.81.2
-ARG GLIB_URL="https://download.gnome.org/sources/glib/2.81/glib-$GLIB_VERSION.tar.xz"
-ARG GLIB_SHA256=ce84b241b84750a3d42c78c456976fac57f2d2726a110f2ba059c052a4349d1c
+ARG GLIB_VERSION=2.83.2
+ARG GLIB_URL="https://download.gnome.org/sources/glib/2.83/glib-$GLIB_VERSION.tar.xz"
+ARG GLIB_SHA256=8428d672c8485636d940f03ce8dcdc174f9b3892ac8b2eea76dd281af6a6e937
 RUN \
   wget $WGET_OPTS -O glib.tar.xz "$GLIB_URL" && \
   echo "$GLIB_SHA256  glib.tar.xz" | sha256sum --status -c - && \
@@ -112,9 +114,9 @@ RUN \
 # bump: harfbuzz /LIBHARFBUZZ_VERSION=([\d.]+)/ https://github.com/harfbuzz/harfbuzz.git|*
 # bump: harfbuzz after ./hashupdate Dockerfile LIBHARFBUZZ $LATEST
 # bump: harfbuzz link "NEWS" https://github.com/harfbuzz/harfbuzz/blob/main/NEWS
-ARG LIBHARFBUZZ_VERSION=9.0.0
+ARG LIBHARFBUZZ_VERSION=10.1.0
 ARG LIBHARFBUZZ_URL="https://github.com/harfbuzz/harfbuzz/releases/download/$LIBHARFBUZZ_VERSION/harfbuzz-$LIBHARFBUZZ_VERSION.tar.xz"
-ARG LIBHARFBUZZ_SHA256=a41b272ceeb920c57263ec851604542d9ec85ee3030506d94662067c7b6ab89e
+ARG LIBHARFBUZZ_SHA256=6ce3520f2d089a33cef0fc48321334b8e0b72141f6a763719aaaecd2779ecb82
 RUN \
   wget $WGET_OPTS -O harfbuzz.tar.xz "$LIBHARFBUZZ_URL" && \
   echo "$LIBHARFBUZZ_SHA256  harfbuzz.tar.xz" | sha256sum --status -c - && \
@@ -127,9 +129,9 @@ RUN \
 # bump: cairo /CAIRO_VERSION=([\d.]+)/ https://gitlab.freedesktop.org/cairo/cairo.git|^1
 # bump: cairo after ./hashupdate Dockerfile CAIRO $LATEST
 # bump: cairo link "NEWS" https://gitlab.freedesktop.org/cairo/cairo/-/blob/master/NEWS?ref_type=heads
-ARG CAIRO_VERSION=1.18.0
+ARG CAIRO_VERSION=1.18.2
 ARG CAIRO_URL="https://cairographics.org/releases/cairo-$CAIRO_VERSION.tar.xz"
-ARG CAIRO_SHA256=243a0736b978a33dee29f9cca7521733b78a65b5418206fef7bd1c3d4cf10b64
+ARG CAIRO_SHA256=a62b9bb42425e844cc3d6ddde043ff39dbabedd1542eba57a2eb79f85889d45a
 RUN \
   wget $WGET_OPTS -O cairo.tar.xz "$CAIRO_URL" && \
   echo "$CAIRO_SHA256  cairo.tar.xz" | sha256sum --status -c - && \
@@ -148,9 +150,9 @@ RUN \
 # bump: pango /PANGO_VERSION=([\d.]+)/ https://github.com/GNOME/pango.git|/\d+\.\d+\.\d+/|*
 # bump: pango after ./hashupdate Dockerfile PANGO $LATEST
 # bump: pango link "NEWS" https://gitlab.gnome.org/GNOME/pango/-/blob/main/NEWS?ref_type=heads
-ARG PANGO_VERSION=1.54.0
-ARG PANGO_URL="https://download.gnome.org/sources/pango/1.54/pango-$PANGO_VERSION.tar.xz"
-ARG PANGO_SHA256=8a9eed75021ee734d7fc0fdf3a65c3bba51dfefe4ae51a9b414a60c70b2d1ed8
+ARG PANGO_VERSION=1.55.5
+ARG PANGO_URL="https://download.gnome.org/sources/pango/1.55/pango-$PANGO_VERSION.tar.xz"
+ARG PANGO_SHA256=e396126ea08203cbd8ef12638e6222e2e1fd8aa9cac6743072fedc5f2d820dd8
 # TODO: add -Dbuild-testsuite=false when in stable release
 # TODO: -Ddefault_library=both currently to not fail building tests
 RUN \
@@ -167,9 +169,9 @@ RUN \
 # bump: librsvg /LIBRSVG_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/librsvg.git|^2
 # bump: librsvg after ./hashupdate Dockerfile LIBRSVG $LATEST
 # bump: librsvg link "NEWS" https://gitlab.gnome.org/GNOME/librsvg/-/blob/master/NEWS
-ARG LIBRSVG_VERSION=2.58.93
-ARG LIBRSVG_URL="https://download.gnome.org/sources/librsvg/2.58/librsvg-$LIBRSVG_VERSION.tar.xz"
-ARG LIBRSVG_SHA256=f116eaf8196fc8261b0bbbdf996a4fe1bc97dc25664f953b328194d049a0dada
+ARG LIBRSVG_VERSION=2.59.2
+ARG LIBRSVG_URL="https://download.gnome.org/sources/librsvg/2.59/librsvg-$LIBRSVG_VERSION.tar.xz"
+ARG LIBRSVG_SHA256=ecd293fb0cc338c170171bbc7bcfbea6725d041c95f31385dc935409933e4597
 RUN \
   wget $WGET_OPTS -O librsvg.tar.xz "$LIBRSVG_URL" && \
   echo "$LIBRSVG_SHA256  librsvg.tar.xz" | sha256sum --status -c - && \
@@ -190,9 +192,9 @@ RUN \
 # bump: aom after ./hashupdate Dockerfile AOM $LATEST
 # bump: aom after COMMIT=$(git ls-remote https://aomedia.googlesource.com/aom v$LATEST^{} | awk '{print $1}') && sed -i -E "s/^ARG AOM_COMMIT=.*/ARG AOM_COMMIT=$COMMIT/" Dockerfile
 # bump: aom link "CHANGELOG" https://aomedia.googlesource.com/aom/+/refs/tags/v$LATEST/CHANGELOG
-ARG AOM_VERSION=3.9.1
+ARG AOM_VERSION=3.11.0
 ARG AOM_URL="https://aomedia.googlesource.com/aom"
-ARG AOM_COMMIT=8ad484f8a18ed1853c094e7d3a4e023b2a92df28
+ARG AOM_COMMIT=d6f30ae474dd6c358f26de0a0fc26a0d7340a84c
 RUN git clone --depth 1 --branch v$AOM_VERSION "$AOM_URL"
 RUN cd aom && test $(git rev-parse HEAD) = $AOM_COMMIT
 RUN \
@@ -275,9 +277,9 @@ RUN \
 # bump: dav1d /DAV1D_VERSION=([\d.]+)/ https://code.videolan.org/videolan/dav1d.git|*
 # bump: dav1d after ./hashupdate Dockerfile DAV1D $LATEST
 # bump: dav1d link "Release notes" https://code.videolan.org/videolan/dav1d/-/tags/$LATEST
-ARG DAV1D_VERSION=1.4.3
+ARG DAV1D_VERSION=1.5.0
 ARG DAV1D_URL="https://code.videolan.org/videolan/dav1d/-/archive/$DAV1D_VERSION/dav1d-$DAV1D_VERSION.tar.gz"
-ARG DAV1D_SHA256=88a023e58d955e0886faf49c72940e0e90914a948a8e60c1326ce3e09e7a6099
+ARG DAV1D_SHA256=78b15d9954b513ea92d27f39362535ded2243e1b0924fde39f37a31ebed5f76b
 RUN \
   wget $WGET_OPTS -O dav1d.tar.gz "$DAV1D_URL" && \
   echo "$DAV1D_SHA256  dav1d.tar.gz" | sha256sum -c - && \
@@ -327,7 +329,7 @@ RUN \
 # bump: libgme after ./hashupdate Dockerfile LIBGME $LATEST
 # bump: libgme link "Source diff $CURRENT..$LATEST" https://github.com/libgme/game-music-emu/compare/$CURRENT..v$LATEST
 ARG LIBGME_URL="https://github.com/libgme/game-music-emu.git"
-ARG LIBGME_COMMIT=05a2aa29e8eae29316804fdd28ceaa96c74a1531
+ARG LIBGME_COMMIT=cb2c1ccc7563ed58321cc3b6b8507b9015192b80
 RUN \
   git clone "$LIBGME_URL" && \
   cd game-music-emu && git checkout --recurse-submodules $LIBGME_COMMIT && \
@@ -429,9 +431,9 @@ RUN \
 # bump: libmysofa after ./hashupdate Dockerfile LIBMYSOFA $LATEST
 # bump: libmysofa link "Release" https://github.com/hoene/libmysofa/releases/tag/v$LATEST
 # bump: libmysofa link "Source diff $CURRENT..$LATEST" https://github.com/hoene/libmysofa/compare/v$CURRENT..v$LATEST
-# ARG LIBMYSOFA_VERSION=1.3.2
+# ARG LIBMYSOFA_VERSION=1.3.3
 # ARG LIBMYSOFA_URL="https://github.com/hoene/libmysofa/archive/refs/tags/v$LIBMYSOFA_VERSION.tar.gz"
-# ARG LIBMYSOFA_SHA256=6c5224562895977e87698a64cb7031361803d136057bba35ed4979b69ab4ba76
+# ARG LIBMYSOFA_SHA256=a15f7236a2b492f8d8da69f6c71b5bde1ef1bac0ef428b94dfca1cabcb24c84f
 # RUN \
 #   wget $WGET_OPTS -O libmysofa.tar.gz "$LIBMYSOFA_URL" && \
 #   echo "$LIBMYSOFA_SHA256  libmysofa.tar.gz" | sha256sum -c - && \
@@ -464,9 +466,9 @@ RUN \
 # bump: openjpeg /OPENJPEG_VERSION=([\d.]+)/ https://github.com/uclouvain/openjpeg.git|*
 # bump: openjpeg after ./hashupdate Dockerfile OPENJPEG $LATEST
 # bump: openjpeg link "CHANGELOG" https://github.com/uclouvain/openjpeg/blob/master/CHANGELOG.md
-ARG OPENJPEG_VERSION=2.5.2
+ARG OPENJPEG_VERSION=2.5.3
 ARG OPENJPEG_URL="https://github.com/uclouvain/openjpeg/archive/v$OPENJPEG_VERSION.tar.gz"
-ARG OPENJPEG_SHA256=90e3896fed910c376aaf79cdd98bdfdaf98c6472efd8e1debf0a854938cbda6a
+ARG OPENJPEG_SHA256=368fe0468228e767433c9ebdea82ad9d801a3ad1e4234421f352c8b06e7aa707
 RUN \
   wget $WGET_OPTS -O openjpeg.tar.gz "$OPENJPEG_URL" && \
   echo "$OPENJPEG_SHA256  openjpeg.tar.gz" | sha256sum -c - && \
@@ -505,9 +507,9 @@ RUN \
 # bump: librabbitmq /LIBRABBITMQ_VERSION=([\d.]+)/ https://github.com/alanxz/rabbitmq-c.git|*
 # bump: librabbitmq after ./hashupdate Dockerfile LIBRABBITMQ $LATEST
 # bump: librabbitmq link "ChangeLog" https://github.com/alanxz/rabbitmq-c/blob/master/ChangeLog.md
-# ARG LIBRABBITMQ_VERSION=0.14.0
+# ARG LIBRABBITMQ_VERSION=0.15.0
 # ARG LIBRABBITMQ_URL="https://github.com/alanxz/rabbitmq-c/archive/refs/tags/v$LIBRABBITMQ_VERSION.tar.gz"
-# ARG LIBRABBITMQ_SHA256=839b28eae20075ac58f45925fe991d16a3138cbde015db0ee11df1acb1c493df
+# ARG LIBRABBITMQ_SHA256=7b652df52c0de4d19ca36c798ed81378cba7a03a0f0c5d498881ae2d79b241c2
 # RUN \
 #   wget $WGET_OPTS -O rabbitmq-c.tar.gz "$LIBRABBITMQ_URL" && \
 #   echo "$LIBRABBITMQ_SHA256  rabbitmq-c.tar.gz" | sha256sum -c - && \
@@ -610,9 +612,9 @@ RUN \
 # bump: srt /SRT_VERSION=([\d.]+)/ https://github.com/Haivision/srt.git|^1
 # bump: srt after ./hashupdate Dockerfile SRT $LATEST
 # bump: srt link "Release notes" https://github.com/Haivision/srt/releases/tag/v$LATEST
-# ARG SRT_VERSION=1.5.3
+# ARG SRT_VERSION=1.5.4
 # ARG SRT_URL="https://github.com/Haivision/srt/archive/v$SRT_VERSION.tar.gz"
-# ARG SRT_SHA256=befaeb16f628c46387b898df02bc6fba84868e86a6f6d8294755375b9932d777
+# ARG SRT_SHA256=d0a8b600fe1b4eaaf6277530e3cfc8f15b8ce4035f16af4a5eb5d4b123640cdd
 # RUN \
 #   wget $WGET_OPTS -O libsrt.tar.gz "$SRT_URL" && \
 #   echo "$SRT_SHA256  libsrt.tar.gz" | sha256sum -c - && \
@@ -638,12 +640,11 @@ RUN \
 # bump: libssh after ./hashupdate Dockerfile LIBSSH $LATEST
 # bump: libssh link "Source diff $CURRENT..$LATEST" https://gitlab.com/libssh/libssh-mirror/-/compare/libssh-$CURRENT...libssh-$LATEST
 # bump: libssh link "Release notes" https://gitlab.com/libssh/libssh-mirror/-/tags/libssh-$LATEST
-# ARG LIBSSH_VERSION=0.10.6
+# ARG LIBSSH_VERSION=0.11.1
 # ARG LIBSSH_URL="https://gitlab.com/libssh/libssh-mirror/-/archive/libssh-$LIBSSH_VERSION/libssh-mirror-libssh-$LIBSSH_VERSION.tar.gz"
-# ARG LIBSSH_SHA256=3a29ee78cbe0305459fc8a337b3b0dc3335b7724299dc69ab2657607746a1d82
+# ARG LIBSSH_SHA256=b43ef9c91b6c3db64e7ba3db101eb89dbe645db63489c19d4f88cf6f84911ec6
 # # LIBSSH_STATIC=1 is REQUIRED to link statically against libssh.a so add to pkg-config file
-# # make does not -j as it seems to be shaky, libssh.a used before created
-# RUN \
+# # RUN \
 #   wget $WGET_OPTS -O libssh.tar.gz "$LIBSSH_URL" && \
 #   echo "$LIBSSH_SHA256  libssh.tar.gz" | sha256sum -c - && \
 #   tar $TAR_OPTS libssh.tar.gz && cd libssh* && \
@@ -673,14 +674,15 @@ RUN \
 #     -DWITH_EXAMPLES=OFF \
 #     -DWITH_INTERNAL_DOC=OFF \
 #     .. && \
-#   make -j$(nproc) install
+#   # make -j seems to be shaky, libssh.a ends up truncated (used before fully created?)
+#  make install
 
 # bump: svtav1 /SVTAV1_VERSION=([\d.]+)/ https://gitlab.com/AOMediaCodec/SVT-AV1.git|*
 # bump: svtav1 after ./hashupdate Dockerfile SVTAV1 $LATEST
 # bump: svtav1 link "Release notes" https://gitlab.com/AOMediaCodec/SVT-AV1/-/releases/v$LATEST
-ARG SVTAV1_VERSION=2.2.1
+ARG SVTAV1_VERSION=2.3.0
 ARG SVTAV1_URL="https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-AV1-v$SVTAV1_VERSION.tar.bz2"
-ARG SVTAV1_SHA256=3fd002b88816506f84b6d624659be5cbadb4cdf5a11258a5cbc6bfc488c82d01
+ARG SVTAV1_SHA256=f65358499f572a47d6b076dda73681a8162b02c0b619a551bc2d62ead8ee719a
 RUN \
   wget $WGET_OPTS -O svtav1.tar.bz2 "$SVTAV1_URL" && \
   echo "$SVTAV1_SHA256  svtav1.tar.bz2" | sha256sum -c - && \
@@ -814,9 +816,9 @@ RUN \
 # bump: libvpx after ./hashupdate Dockerfile VPX $LATEST
 # bump: libvpx link "CHANGELOG" https://github.com/webmproject/libvpx/blob/master/CHANGELOG
 # bump: libvpx link "Source diff $CURRENT..$LATEST" https://github.com/webmproject/libvpx/compare/v$CURRENT..v$LATEST
-ARG VPX_VERSION=1.14.1
+ARG VPX_VERSION=1.15.0
 ARG VPX_URL="https://github.com/webmproject/libvpx/archive/v$VPX_VERSION.tar.gz"
-ARG VPX_SHA256=901747254d80a7937c933d03bd7c5d41e8e6c883e0665fadcb172542167c7977
+ARG VPX_SHA256=e935eded7d81631a538bfae703fd1e293aad1c7fd3407ba00440c95105d2011e
 RUN \
   wget $WGET_OPTS -O libvpx.tar.gz "$VPX_URL" && \
   echo "$VPX_SHA256  libvpx.tar.gz" | sha256sum -c - && \
@@ -829,7 +831,7 @@ RUN \
     --disable-examples && \
   make -j$(nproc) install
 
-# bump: libwebp /LIBWEBP_VERSION=([\d.]+)/ https://github.com/webmproject/libwebp.git|*
+# bump: libwebp /LIBWEBP_VERSION=([\d.]+)/ https://github.com/webmproject/libwebp.git|^1
 # bump: libwebp after ./hashupdate Dockerfile LIBWEBP $LATEST
 # bump: libwebp link "Release notes" https://github.com/webmproject/libwebp/releases/tag/v$LATEST
 # bump: libwebp link "Source diff $CURRENT..$LATEST" https://github.com/webmproject/libwebp/compare/v$CURRENT..v$LATEST
@@ -873,19 +875,18 @@ RUN \
     --disable-swscale && \
   make -j$(nproc) install
 
-# x265 release is over 1 years old and master branch has a lot of fixes and improvements, so we checkout commit so no hash is needed
-# bump: x265 /X265_VERSION=([[:xdigit:]]+)/ gitrefs:https://bitbucket.org/multicoreware/x265_git.git|re:#^refs/heads/master$#|@commit
+# bump: x265 /X265_VERSION=([\d.]+)/ https://bitbucket.org/multicoreware/x265_git.git|*
 # bump: x265 after ./hashupdate Dockerfile X265 $LATEST
 # bump: x265 link "Source diff $CURRENT..$LATEST" https://bitbucket.org/multicoreware/x265_git/branches/compare/$LATEST..$CURRENT#diff
-ARG X265_VERSION=c1686da954da90a84d3a6bbecf567c3cfa0269e8
-ARG X265_SHA256=65c64f25a8ead0222d3a0c88800d4d0c309847e0730c6004c6239e05aaa71dae
-ARG X265_URL="https://bitbucket.org/multicoreware/x265_git/get/$X265_VERSION.tar.bz2"
+ARG X265_VERSION=4.0
+ARG X265_SHA256=75b4d05629e365913de3100b38a459b04e2a217a8f30efaa91b572d8e6d71282
+ARG X265_URL="https://bitbucket.org/multicoreware/x265_git/downloads/x265_$X265_VERSION.tar.gz"
 # CMAKEFLAGS issue
 # https://bitbucket.org/multicoreware/x265_git/issues/620/support-passing-cmake-flags-to-multilibsh
 RUN \
   wget $WGET_OPTS -O x265_git.tar.bz2 "$X265_URL" && \
   echo "$X265_SHA256  x265_git.tar.bz2" | sha256sum -c - && \
-  tar $TAR_OPTS x265_git.tar.bz2 && cd multicoreware-x265_git-*/build/linux && \
+  tar $TAR_OPTS x265_git.tar.bz2 && cd x265_*/build/linux && \
   sed -i '/^cmake / s/$/ -G "Unix Makefiles" ${CMAKEFLAGS}/' ./multilib.sh && \
   sed -i 's/ -DENABLE_SHARED=OFF//g' ./multilib.sh && \
   MAKEFLAGS="-j$(nproc)" \
@@ -912,7 +913,7 @@ RUN \
 #   make -j$(nproc) install
 
 # http://websvn.xvid.org/cvs/viewvc.cgi/trunk/xvidcore/build/generic/configure.in?revision=2146&view=markup
-# bump: xvid /XVID_VERSION=([\d.]+)/ svn:http://anonymous:@svn.xvid.org|/^release-(.*)$/|/_/./|^1
+# bump: xvid /XVID_VERSION=([\d.]+)/ svn:https://anonymous:@svn.xvid.org|/^release-(.*)$/|/_/./|^1
 # bump: xvid after ./hashupdate Dockerfile XVID $LATEST
 # add extra CFLAGS that are not enabled by -O3
 # ARG XVID_VERSION=1.3.7
@@ -930,9 +931,9 @@ RUN \
 # bump: xeve link "CHANGELOG" https://github.com/mpeg5/xeve/releases/tag/v$LATEST
 # TODO: better -DARM? possible to build on non arm and intel?
 # TODO: report upstream about lib/libxeve.a?
-# ARG XEVE_VERSION=0.5.0
+# ARG XEVE_VERSION=0.5.1
 # ARG XEVE_URL="https://github.com/mpeg5/xeve/archive/refs/tags/v$XEVE_VERSION.tar.gz"
-# ARG XEVE_SHA256=4fb593921d2a0b48621f410ccd704d67d6ed1d08ab0aa7c5d5fef519ce596e8a
+# ARG XEVE_SHA256=238c95ddd1a63105913d9354045eb329ad9002903a407b5cf1ab16bad324c245
 # RUN \
 #   wget $WGET_OPTS -O xeve.tar.gz "$XEVE_URL" && \
 #   echo "$XEVE_SHA256  xeve.tar.gz" | sha256sum -c - && \
@@ -992,9 +993,9 @@ RUN \
 # bump: libjxl after ./hashupdate Dockerfile LIBJXL $LATEST
 # bump: libjxl link "Changelog" https://github.com/libjxl/libjxl/blob/main/CHANGELOG.md
 # use bundled highway library as its static build is not available in alpine
-ARG LIBJXL_VERSION=0.10.3
+ARG LIBJXL_VERSION=0.11.1
 ARG LIBJXL_URL="https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VERSION}.tar.gz"
-ARG LIBJXL_SHA256=e0191411cfcd927eebe5392d030fe4283fe27ba1685ab7265104936e0b4283a6
+ARG LIBJXL_SHA256=1492dfef8dd6c3036446ac3b340005d92ab92f7d48ee3271b5dac1d36945d3d9
 RUN \
   wget $WGET_OPTS -O libjxl.tar.gz "$LIBJXL_URL" && \
   echo "$LIBJXL_SHA256  libjxl.tar.gz" | sha256sum -c - && \
@@ -1044,13 +1045,78 @@ RUN \
 #     --enable-static && \
 #   make -j$(nproc) install
 
+# requires libdrm
+# bump: libva /LIBVA_VERSION=([\d.]+)/ https://github.com/intel/libva.git|^2
+# bump: libva after ./hashupdate Dockerfile LIBVA $LATEST
+# bump: libva link "Changelog" https://github.com/intel/libva/blob/master/NEWS
+ARG LIBVA_VERSION=2.22.0
+ARG LIBVA_URL="https://github.com/intel/libva/archive/refs/tags/${LIBVA_VERSION}.tar.gz"
+ARG LIBVA_SHA256=467c418c2640a178c6baad5be2e00d569842123763b80507721ab87eb7af8735
+RUN \
+  wget $WGET_OPTS -O libva.tar.gz "$LIBVA_URL" && \
+  echo "$LIBVA_SHA256  libva.tar.gz" | sha256sum -c - && \
+  tar $TAR_OPTS libva.tar.gz && cd libva-* && \
+  meson setup build \
+    -Dbuildtype=release \
+    -Ddefault_library=static \
+    -Ddisable_drm=false \
+    -Dwith_x11=no \
+    -Dwith_glx=no \
+    -Dwith_wayland=no \
+    -Dwith_win32=no \
+    -Dwith_legacy=[] \
+    -Denable_docs=false && \
+  ninja -j$(nproc) -vC build install
+
+# bump: libvpl /LIBVPL_VERSION=([\d.]+)/ https://github.com/intel/libvpl.git|^2
+# bump: libvpl after ./hashupdate Dockerfile LIBVPL $LATEST
+# bump: libvpl link "Changelog" https://github.com/intel/libvpl/blob/main/CHANGELOG.md
+ARG LIBVPL_VERSION=2.14.0
+ARG LIBVPL_URL="https://github.com/intel/libvpl/archive/refs/tags/v${LIBVPL_VERSION}.tar.gz"
+ARG LIBVPL_SHA256=7c6bff1c1708d910032c2e6c44998ffff3f5fdbf06b00972bc48bf2dd9e5ac06
+RUN \
+  wget $WGET_OPTS -O libvpl.tar.gz "$LIBVPL_URL" && \
+  echo "$LIBVPL_SHA256  libvpl.tar.gz" | sha256sum -c - && \
+  tar $TAR_OPTS libvpl.tar.gz && cd libvpl-* && \
+  cmake -B build \
+    -G"Unix Makefiles" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_VERBOSE_MAKEFILE=ON \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DBUILD_TESTS=OFF \
+    -DENABLE_WARNING_AS_ERROR=ON && \
+  cmake --build build -j$(nproc) && \
+  cmake --install build
+
+# bump: vvenc /VVENC_VERSION=([\d.]+)/ https://github.com/fraunhoferhhi/vvenc.git|*
+# bump: vvenc after ./hashupdate Dockerfile VVENC $LATEST
+# bump: vvenc link "CHANGELOG" https://github.com/fraunhoferhhi/vvenc/releases/tag/v$LATEST
+ARG VVENC_VERSION=1.13.0
+ARG VVENC_URL="https://github.com/fraunhoferhhi/vvenc/archive/refs/tags/v$VVENC_VERSION.tar.gz"
+ARG VVENC_SHA256=28994435e4f7792cc3a907b1c5f20afd0f7ef1fcd82eee2af7713df7a72422eb
+RUN \
+  wget $WGET_OPTS -O vvenc.tar.gz "$VVENC_URL" && \
+  echo "$VVENC_SHA256  vvenc.tar.gz" | sha256sum --status -c - && \
+  tar $TAR_OPTS vvenc.tar.gz && cd vvenc-* && \
+  # TODO: https://github.com/fraunhoferhhi/vvenc/pull/422
+  sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
+  cmake \
+    -S . \
+    -B build/release-static \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local && \
+  cmake --build build/release-static -j && \
+  cmake --build build/release-static --target install
+
 # bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|*
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
 # bump: ffmpeg link "Changelog" https://github.com/FFmpeg/FFmpeg/blob/n$LATEST/Changelog
 # bump: ffmpeg link "Source diff $CURRENT..$LATEST" https://github.com/FFmpeg/FFmpeg/compare/n$CURRENT..n$LATEST
-ARG FFMPEG_VERSION=7.0.2
+ARG FFMPEG_VERSION=7.1
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
-ARG FFMPEG_SHA256=1ed250407ea8f955cca2f1139da3229fbc13032a0802e4b744be195865ff1541
+ARG FFMPEG_SHA256=fd59e6160476095082e94150ada5a6032d7dcc282fe38ce682a00c18e7820528
 ARG ENABLE_FDKAAC=
 # sed changes --toolchain=hardened -pie to -static-pie
 #
@@ -1112,6 +1178,7 @@ RUN cd ffmpeg* && \
   --enable-librsvg \
   --enable-libsvtav1 \
   --enable-libvpx \
+  --enable-libvvenc \
   --enable-libwebp \
   --enable-libx264 \
   --enable-libx265 \
@@ -1123,9 +1190,9 @@ RUN cd ffmpeg* && \
 RUN \
   EXPAT_VERSION=$(pkg-config --modversion expat) \
   FFTW_VERSION=$(pkg-config --modversion fftw3) \
-  FONTCONFIG_VERSION=$(pkg-config --modversion fontconfig)  \
-  FREETYPE_VERSION=$(pkg-config --modversion freetype2)  \
-  FRIBIDI_VERSION=$(pkg-config --modversion fribidi)  \
+  FONTCONFIG_VERSION=$(pkg-config --modversion fontconfig) \
+  FREETYPE_VERSION=$(pkg-config --modversion freetype2) \
+  FRIBIDI_VERSION=$(pkg-config --modversion fribidi) \
   LIBSAMPLERATE_VERSION=$(pkg-config --modversion samplerate) \
   LIBVO_AMRWBENC_VERSION=$(pkg-config --modversion vo-amrwbenc) \
   LIBXML2_VERSION=$(pkg-config --modversion libxml-2.0) \
@@ -1176,11 +1243,14 @@ RUN \
   libtheora: env.THEORA_VERSION, \
   libtwolame: env.TWOLAME_VERSION, \
   libuavs3d: env.UAVS3D_COMMIT, \
+  libva: env.LIBVA_VERSION, \
   libvidstab: env.VIDSTAB_VERSION, \
   libvmaf: env.VMAF_VERSION, \
   libvo_amrwbenc: env.LIBVO_AMRWBENC_VERSION, \
   libvorbis: env.VORBIS_VERSION, \
+  libvpl: env.LIBVPL_VERSION, \
   libvpx: env.VPX_VERSION, \
+  libvvenc: env.VVENC_VERSION, \
   libwebp: env.LIBWEBP_VERSION, \
   libx264: env.X264_VERSION, \
   libx265: env.X265_VERSION, \

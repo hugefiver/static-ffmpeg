@@ -16,20 +16,20 @@ Use `mwader/static-ffmpeg` from [Docker Hub](https://hub.docker.com/r/mwader/sta
 
 In Dockerfile
 ```Dockerfile
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/local/bin/
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /usr/local/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffprobe /usr/local/bin/
 ```
 
 Run directly
 ```sh
-docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.2 -i file.wav file.mp3
-docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.2 -i file.wav
+docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.1 -i file.wav file.mp3
+docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.1 -i file.wav
 ```
 
 As shell alias
 ```sh
-alias ffmpeg='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.0.2'
-alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.0.2'
+alias ffmpeg='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" mwader/static-ffmpeg:7.1'
+alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --entrypoint=/ffprobe mwader/static-ffmpeg:7.1'
 ```
 
 ### Libraries
@@ -73,11 +73,14 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 - [libtheora](https://github.com/xiph/theora)
 - [libtwolame](https://github.com/njh/twolame)
 - [libuavs3d](https://github.com/uavs3/uavs3d)
+- [libva](https://github.com/intel/libva)
 - [libvidstab](https://github.com/georgmartius/vid.stab)
 - [libvmaf](https://github.com/Netflix/vmaf)
 - [libvo-amrwbenc](https://github.com/mstorsjo/vo-amrwbenc)
 - [libvorbis](https://github.com/xiph/vorbis)
+- [libvpl](https://github.com/intel/libvpl)
 - [libvpx](https://github.com/webmproject/libvpx)
+- [libvvenc](https://github.com/fraunhoferhhi/vvenc)
 - [libwebp](https://chromium.googlesource.com/webm/libwebp)
 - [libx264](https://www.videolan.org/developers/x264.html)
 - [libx265](https://www.videolan.org/developers/x265.html) (multilib with support for 10 and 12 bits)
@@ -152,8 +155,8 @@ EOF
 2. Copy the `ffmpeg` (and `ffprobe`) binaries.
 
 ```Dockerfile
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/bin/
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffprobe /usr/bin/
 ```
 
 3. Make sure the `/app/fonts` directory exist in your image.
@@ -182,8 +185,8 @@ EOF
 
 FROM base as ffmpeg
 
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffmpeg /usr/bin/
-COPY --from=mwader/static-ffmpeg:7.0.2 /ffprobe /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /usr/bin/
+COPY --from=mwader/static-ffmpeg:7.1 /ffprobe /usr/bin/
 
 FROM ffmpeg AS app
 
@@ -241,7 +244,7 @@ Since version 5.0.1-3 dockerhub images are multi-arch amd64 and arm64 images.
 
 This will copy `ffmpeg` and `ffprobe` to the current directory:
 ```
-docker run --rm -v "$PWD:/out" $(echo -e 'FROM alpine\nCOPY --from=mwader/static-ffmpeg:7.0.2 /ff* /\nENTRYPOINT cp /ff* /out' | docker build -q -)
+docker run --rm -v "$PWD:/out" $(echo -e 'FROM alpine\nCOPY --from=mwader/static-ffmpeg:7.1 /ff* /\nENTRYPOINT cp /ff* /out' | docker build -q -)
 ```
 
 #### Quickly see what versions an image was built with
@@ -268,9 +271,9 @@ See these references for further discussion and workarounds:
 ](https://github.com/openssl/openssl/discussions/23016)
 - [OpenSSL issue with binary outside container (RedHat/Fedora specific)](https://github.com/wader/static-ffmpeg/issues/462)
 
-### Docker Hub images
+### Thanks
 
-Multi-arch dockerhub images are built using [pyldin601/build-multiarch-on-aws-spots](https://github.com/pyldin601/build-multiarch-on-aws-spots). See [build-multiarch.yml](.github/workflows/build-multiarch.yml) for config. Thanks to [@pyldin601](https://github.com/pyldin601) for making this possible.
+- [@pyldin601](https://github.com/pyldin601) for working on multi arch builds
 
 ### Contribute
 
@@ -284,6 +287,5 @@ usage and potential distribution of such.
 ### TODOs and possible things to add
 
 - Add libplacebo, chromaprint, etc. ...
-- Add vvenc/vvdec support once in stable
 - Add acceleration support (GPU, CUDA, ...)
 - Add *.a *.so libraries, headers and pkg-config somehow
