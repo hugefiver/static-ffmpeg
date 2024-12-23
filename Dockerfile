@@ -283,7 +283,7 @@ ARG DAVS2_URL="https://github.com/pkuvcl/davs2/archive/refs/tags/$DAVS2_VERSION.
 ARG DAVS2_SHA256=b697d0b376a1c7f7eda3a4cc6d29707c8154c4774358303653f0a9727f923cc8
 # TODO: seems to be issues with asm on musl
 
-ADD $DAVS2_URL /davs2.tar.gz
+ADD --checksum=sha256:$DAVS2_SHA256 $DAVS2_URL /davs2.tar.gz
 RUN tar $TAR_OPTS davs2.tar.gz && cd davs2-*/build/linux && \
     ./configure \
       --disable-asm \
@@ -300,7 +300,7 @@ ARG FDK_AAC_VERSION=2.0.3
 ARG FDK_AAC_URL="https://github.com/mstorsjo/fdk-aac/archive/v$FDK_AAC_VERSION.tar.gz"
 ARG FDK_AAC_SHA256=e25671cd96b10bad896aa42ab91a695a9e573395262baed4e4a2ff178d6a3a78
 
-ADD $FDK_AAC_URL /fdk-aac.tar.gz
+ADD --checksum=sha256:$FDK_AAC_SHA256 $FDK_AAC_URL /fdk-aac.tar.gz
 RUN tar $TAR_OPTS fdk-aac.tar.gz && cd fdk-aac-* && \
     ./autogen.sh && \
     ./configure \
@@ -351,7 +351,7 @@ ARG KVAZAAR_VERSION=2.3.1
 ARG KVAZAAR_URL="https://github.com/ultravideo/kvazaar/archive/v$KVAZAAR_VERSION.tar.gz"
 ARG KVAZAAR_SHA256=c5a1699d0bd50bc6bdba485b3438a5681a43d7b2c4fd6311a144740bfa59c9cc
 
-ADD $KVAZAAR_URL /kvazaar.tar.gz
+ADD --checksum=sha256:$KVAZAAR_SHA256 $KVAZAAR_URL /kvazaar.tar.gz
 RUN tar $TAR_OPTS kvazaar.tar.gz && cd kvazaar-* && \
     ./autogen.sh && \
     ./configure \
@@ -363,10 +363,11 @@ RUN tar $TAR_OPTS kvazaar.tar.gz && cd kvazaar-* && \
 # bump: libmodplug after ./hashupdate Dockerfile LIBMODPLUG $LATEST
 # bump: libmodplug link "NEWS" https://sourceforge.net/p/modplug-xmms/git/ci/master/tree/libmodplug/NEWS
 ARG LIBMODPLUG_VERSION=0.8.9.0
-ARG LIBMODPLUG_URL="https://downloads.sourceforge.net/modplug-xmms/libmodplug-$LIBMODPLUG_VERSION.tar.gz"
+# ARG LIBMODPLUG_URL="https://downloads.sourceforge.net/modplug-xmms/libmodplug-$LIBMODPLUG_VERSION.tar.gz"
+ARG LIBMODPLUG_URL="https://sourceforge.net/projects/modplug-xmms/files/libmodplug/$LIBMODPLUG_VERSION/libmodplug-$LIBMODPLUG_VERSION.tar.gz/download"
 ARG LIBMODPLUG_SHA256=457ca5a6c179656d66c01505c0d95fafaead4329b9dbaa0f997d00a3508ad9de
 
-ADD $LIBMODPLUG_URL /libmodplug.tar.gz
+ADD --checksum=sha256:$LIBMODPLUG_SHA256 $LIBMODPLUG_URL /libmodplug.tar.gz
 RUN tar $TAR_OPTS libmodplug.tar.gz && cd libmodplug-* && \
     ./configure \
       --disable-shared \
@@ -380,7 +381,7 @@ ARG MP3LAME_VERSION=3.100
 ARG MP3LAME_URL="https://sourceforge.net/projects/lame/files/lame/$MP3LAME_VERSION/lame-$MP3LAME_VERSION.tar.gz/download"
 ARG MP3LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
 
-ADD $MP3LAME_URL /lame.tar.gz
+ADD --checksum=sha256:$MP3LAME_SHA256 $MP3LAME_URL /lame.tar.gz
 RUN tar $TAR_OPTS lame.tar.gz && cd lame-* && \
     ./configure \
       --disable-shared \
@@ -434,7 +435,7 @@ RUN tar $TAR_OPTS lcms2.tar.gz && cd lcms2-* && \
 # ARG OPENCOREAMR_SHA256=483eb4061088e2b34b358e47540b5d495a96cd468e361050fae615b1809dc4a1
 # ADD $OPENCOREAMR_URL /opencoreamr.tar.gz
 # RUN \
-#   tar $TAR_OPTS opencoreamr.tar.gz && cd opencore-amr-* && \
+#   tar $TAR_OPTS opencore-amr-* && cd opencore-amr-* && \
 #   ./configure \
 #     --enable-static \
 #     --disable-shared && \
@@ -844,7 +845,7 @@ ARG X265_URL="https://bitbucket.org/multicoreware/x265_git/downloads/x265_$X265_
 # CMAKEFLAGS issue
 # https://bitbucket.org/multicoreware/x265_git/issues/620/support-passing-cmake-flags-to-multilibsh
 
-ADD $X265_URL /x265_git.tar.bz2
+ADD --checksum=sha256:$X265_SHA256 $X265_URL /x265_git.tar.bz2
 RUN tar $TAR_OPTS x265_git.tar.bz2 && cd x265_*/build/linux && \
     sed -i '/^cmake / s/$/ -G "Unix Makefiles" ${CMAKEFLAGS}/' ./multilib.sh && \
     sed -i 's/ -DENABLE_SHARED=OFF//g' ./multilib.sh && \
@@ -915,7 +916,7 @@ ARG XEVD_VERSION=0.5.0
 ARG XEVD_URL="https://github.com/mpeg5/xevd/archive/refs/tags/v$XEVD_VERSION.tar.gz"
 ARG XEVD_SHA256=8d55c7ec1a9ad4e70fe91fbe129a1d4dd288bce766f466cba07a29452b3cecd8
 
-ADD $XEVD_URL /xevd.tar.gz
+ADD --checksum=sha256:$XEVD_SHA256 $XEVD_URL /xevd.tar.gz
 RUN tar $TAR_OPTS xevd.tar.gz && cd xevd-* && \
     echo v$XEVD_VERSION > version.txt && \
     sed -i 's/mc_filter_bilin/xevdm_mc_filter_bilin/' src_main/sse/xevdm_mc_sse.c && \
@@ -951,7 +952,7 @@ ARG LIBJXL_VERSION=0.11.1
 ARG LIBJXL_URL="https://github.com/libjxl/libjxl/archive/refs/tags/v${LIBJXL_VERSION}.tar.gz"
 ARG LIBJXL_SHA256=1492dfef8dd6c3036446ac3b340005d92ab92f7d48ee3271b5dac1d36945d3d9
 
-ADD $LIBJXL_URL /libjxl.tar.gz
+ADD --checksum=sha256:$LIBJXL_SHA256 $LIBJXL_URL /libjxl.tar.gz
 RUN tar $TAR_OPTS libjxl.tar.gz && cd libjxl-* && \
     ./deps.sh && \
     cmake -B build \
@@ -1026,7 +1027,7 @@ ARG LIBVPL_VERSION=2.14.0
 ARG LIBVPL_URL="https://github.com/intel/libvpl/archive/refs/tags/v${LIBVPL_VERSION}.tar.gz"
 ARG LIBVPL_SHA256=7c6bff1c1708d910032c2e6c44998ffff3f5fdbf06b00972bc48bf2dd9e5ac06
 
-ADD $LIBVPL_URL /libvpl.tar.gz
+ADD --checksum=sha256:$LIBVPL_SHA256 $LIBVPL_URL /libvpl.tar.gz
 RUN tar $TAR_OPTS libvpl.tar.gz && cd libvpl-* && \
     cmake -B build \
       -G"Unix Makefiles" \
@@ -1047,7 +1048,7 @@ ARG VVENC_VERSION=1.13.0
 ARG VVENC_URL="https://github.com/fraunhoferhhi/vvenc/archive/refs/tags/v$VVENC_VERSION.tar.gz"
 ARG VVENC_SHA256=28994435e4f7792cc3a907b1c5f20afd0f7ef1fcd82eee2af7713df7a72422eb
 
-ADD $VVENC_URL /vvenc.tar.gz
+ADD --checksum=sha256:$VVENC_SHA256 $VVENC_URL /vvenc.tar.gz
 RUN tar $TAR_OPTS vvenc.tar.gz && cd vvenc-* && \
     # TODO: https://github.com/fraunhoferhhi/vvenc/pull/422
     sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
@@ -1076,7 +1077,8 @@ ARG ENABLE_FDKAAC=
 # ldfalgs -Wl,--allow-multiple-definition is a workaround for linking with multiple rust staticlib to
 # not cause collision in toolchain symbols, see comment in checkdupsym script for details.
 
-ADD $FFMPEG_URL /ffmpeg.tar.bz2
+ADD --checksum=sha256:$FFMPEG_SHA256 $FFMPEG_URL /ffmpeg.tar.bz2
+
 RUN tar $TAR_OPTS ffmpeg.tar.bz2
 
 RUN apk add --no-cache git cmake
