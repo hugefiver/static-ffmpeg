@@ -51,6 +51,7 @@ jobs:
           tags: ${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}-${{ matrix.arch }},${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}
           labels: runnumber=${{ github.run_id }}
           load: true
+          provenance: false
           platforms: linux/${{ matrix.arch }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
