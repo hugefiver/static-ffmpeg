@@ -16,7 +16,7 @@ jobs:
     name: Build image
     strategy:
       matrix:
-        arch: [amd64]
+        arch: [amd64, arm64]
 
     needs:
       - tag

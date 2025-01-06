@@ -1,7 +1,7 @@
 # bump: alpine /ALPINE_VERSION=alpine:([\d.]+)/ docker:alpine|^3
 # bump: alpine link "Release notes" https://alpinelinux.org/posts/Alpine-$LATEST-released.html
 ARG ALPINE_VERSION=alpine:3.20.3
-FROM $ALPINE_VERSION AS builder
+FROM --platform=$BUILDPLATFORM $ALPINE_VERSION AS builder
 
 # Alpine Package Keeper options
 ARG APK_OPTS=""
@@ -52,6 +52,79 @@ RUN apk add --no-cache $APK_OPTS \
   curl \
   libdrm-dev
 
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETARCH
+
+# Install cross-compilation toolchain based on target architecture
+RUN if [ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]; then \
+  # Install cross-compilation tools
+  apk add --no-cache \
+  binutils-cross gcc-cross-embedded g++-cross-embedded; \
+  # Set cross compilation environment variables based on target arch
+  case "$TARGETPLATFORM" in \
+  "linux/amd64*") \
+  if [[ "${BUILDPLATFORM}" != "linux/amd64" ]]; then \
+  echo "Cross compiling from $BUILDPLATFORM to $TARGETPLATFORM is not supported"; \
+  exit 1; \
+  fi; \
+  # apk add --no-cache \
+  # binutils-x86 binutils-x86_64;\
+  CROSS_PREFIX="x86_64-alpine-linux-musl-" \
+  BINUTILS_PREFIX="x86_64-alpine-linux-musl-" \
+  TRIPLE="x86_64-unknown-linux-musl" \
+  ;; \
+  "linux/arm64") \
+  # apk add --no-cache \
+  # binutils-aarch64 gcc-aarch64-none-elf g++-aarch64-none-elf;\
+  CROSS_PREFIX="aarch64-none-elf-" \
+  BINUTILS_PREFIX="aarch64-alpine-linux-musl-" \
+  TRIPLE="aarch64-unknown-linux-musl" \
+  ;; \
+  "linux/arm/v7") \
+  # apk add --no-cache \
+  # binutils-armv7 gcc-arm-none-eabi g++-arm-none-eabi;\
+  CROSS_PREFIX="arm-none-eabi-" \
+  BINUTILS_PREFIX="armv7-alpine-linux-musleabihf-" \
+  TRIPLE="armv7-unknown-linux-musleabihf" \
+  ;; \
+  "linux/arm/v6") \
+  # apk add --no-cache \
+  # binutils-armhf gcc-arm-none-eabi g++-arm-none-eabi;\
+  CROSS_PREFIX="arm-none-eabi-" \
+  BINUTILS_PREFIX="armv6-alpine-linux-musleabihf-" \
+  TRIPLE="armv6-unknown-linux-musleabihf" \
+  ;; \
+  *) \
+  echo "Unsupported architecture or cross compile target: $TARGETPLATFORM"; \
+  exit 1 \
+  ;; \
+  esac; \
+  # Export cross compilation variables 
+  echo "export CC=${CROSS_PREFIX}gcc" >> /etc/profile.d/cross-compile.sh; \
+  echo "export CXX=${CROSS_PREFIX}g++" >> /etc/profile.d/cross-compile.sh; \
+  echo "export AR=${CROSS_PREFIX}ar" >> /etc/profile.d/cross-compile.sh; \
+  echo "export AS=${CROSS_PREFIX}as" >> /etc/profile.d/cross-compile.sh; \
+  echo "export LD=${CROSS_PREFIX}ld" >> /etc/profile.d/cross-compile.sh; \
+  echo "export STRIP=${CROSS_PREFIX}strip" >> /etc/profile.d/cross-compile.sh; \
+  echo "export RANLIB=${CROSS_PREFIX}ranlib" >> /etc/profile.d/cross-compile.sh; \
+  echo "export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig" >> /etc/profile.d/cross-compile.sh; \
+  echo "export CROSSBUILD=1" >> /etc/profile.d/cross-compile.sh; \
+  echo "export TRIPLE=${TRIPLE}" >> /etc/profile.d/cross-compile.sh; \
+  fi
+
+# Source the cross compilation environment
+SHELL ["/bin/sh", "-l", "-c"] 
+
+# Generate Meson cross file for cross compilation
+RUN if [[ ! -z "$CROSSBUILD" ]]; then \
+  echo "[binaries]" >> /cross-file; \
+  echo "c = '${CC}'" >> /cross-file; \
+  echo "cpp = '${CXX}'" >> /cross-file; \
+  echo "ar = '${AR}'" >> /cross-file; \
+  echo "strip = '${STRIP}'" >> /cross-file; \
+  fi
+
 # linux-headers need by rtmpdump
 # python3 py3-packaging needed by glib
 
@@ -78,15 +151,16 @@ ARG VMAF_SHA256=7178c4833639e6b989ecae73131d02f70735fdb3fc2c7d84bc36c9c3461d93b1
 
 ADD --checksum=sha256:$VMAF_SHA256 $VMAF_URL /vmaf.tar.gz
 RUN tar $TAR_OPTS vmaf.tar.gz && cd vmaf-*/libvmaf && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Dbuilt_in_models=true \
-      -Denable_tests=false \
-      -Denable_docs=false \
-      -Denable_avx512=true \
-      -Denable_float=true && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static \
+  $([[ -z CROSSBUILD ]] || echo -n "--cross-file /cross-file" ) \
+  -Dbuilt_in_models=true \
+  -Denable_tests=false \
+  -Denable_docs=false \
+  -Denable_avx512=true \
+  -Denable_float=true && \
+  ninja -j$(nproc) -vC build install
 # extra libs stdc++ is for vmaf https://github.com/Netflix/vmaf/issues/788
 RUN sed -i 's/-lvmaf /-lvmaf -lstdc++ /' /usr/local/lib/pkgconfig/libvmaf.pc
 
@@ -100,11 +174,11 @@ ARG GLIB_SHA256=8428d672c8485636d940f03ce8dcdc174f9b3892ac8b2eea76dd281af6a6e937
 
 ADD --checksum=sha256:$GLIB_SHA256 $GLIB_URL /glib.tar.xz
 RUN tar $TAR_OPTS glib.tar.xz && cd glib-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Dlibmount=disabled && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static \
+  -Dlibmount=disabled && \
+  ninja -j$(nproc) -vC build install
 
 # bump: harfbuzz /LIBHARFBUZZ_VERSION=([\d.]+)/ https://github.com/harfbuzz/harfbuzz.git|*
 # bump: harfbuzz after ./hashupdate Dockerfile LIBHARFBUZZ $LATEST
@@ -115,10 +189,10 @@ ARG LIBHARFBUZZ_SHA256=6ce3520f2d089a33cef0fc48321334b8e0b72141f6a763719aaaecd27
 
 ADD --checksum=sha256:$LIBHARFBUZZ_SHA256 $LIBHARFBUZZ_URL /harfbuzz.tar.xz
 RUN tar $TAR_OPTS harfbuzz.tar.xz && cd harfbuzz-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static && \
+  ninja -j$(nproc) -vC build install
 
 # bump: cairo /CAIRO_VERSION=([\d.]+)/ https://gitlab.freedesktop.org/cairo/cairo.git|^1
 # bump: cairo after ./hashupdate Dockerfile CAIRO $LATEST
@@ -129,15 +203,15 @@ ARG CAIRO_SHA256=a62b9bb42425e844cc3d6ddde043ff39dbabedd1542eba57a2eb79f85889d45
 
 ADD --checksum=sha256:$CAIRO_SHA256 $CAIRO_URL /cairo.tar.xz
 RUN tar $TAR_OPTS cairo.tar.xz && cd cairo-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Dtests=disabled \
-      -Dquartz=disabled \
-      -Dxcb=disabled \
-      -Dxlib=disabled \
-      -Dxlib-xcb=disabled && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static \
+  -Dtests=disabled \
+  -Dquartz=disabled \
+  -Dxcb=disabled \
+  -Dxlib=disabled \
+  -Dxlib-xcb=disabled && \
+  ninja -j$(nproc) -vC build install
 
 # TODO: there is weird "1.90" tag, skip it
 # bump: pango /PANGO_VERSION=([\d.]+)/ https://github.com/GNOME/pango.git|/\d+\.\d+\.\d+/|*
@@ -149,12 +223,12 @@ ARG PANGO_SHA256=e396126ea08203cbd8ef12638e6222e2e1fd8aa9cac6743072fedc5f2d820dd
 
 ADD --checksum=sha256:$PANGO_SHA256 $PANGO_URL /pango.tar.xz
 RUN tar $TAR_OPTS pango.tar.xz && cd pango-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=both \
-      -Dintrospection=disabled \
-      -Dgtk_doc=false && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=both \
+  -Dintrospection=disabled \
+  -Dgtk_doc=false && \
+  ninja -j$(nproc) -vC build install
 
 # bump: librsvg /LIBRSVG_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/librsvg.git|^2
 # bump: librsvg after ./hashupdate Dockerfile LIBRSVG $LATEST
@@ -165,16 +239,16 @@ ARG LIBRSVG_SHA256=ecd293fb0cc338c170171bbc7bcfbea6725d041c95f31385dc935409933e4
 
 ADD --checksum=sha256:$LIBRSVG_SHA256 $LIBRSVG_URL /librsvg.tar.xz
 RUN tar $TAR_OPTS librsvg.tar.xz && cd librsvg-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Ddocs=disabled \
-      -Dintrospection=disabled \
-      -Dpixbuf=disabled \
-      -Dpixbuf-loader=disabled \
-      -Dvala=disabled \
-      -Dtests=false && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static \
+  -Ddocs=disabled \
+  -Dintrospection=disabled \
+  -Dpixbuf=disabled \
+  -Dpixbuf-loader=disabled \
+  -Dvala=disabled \
+  -Dtests=false && \
+  ninja -j$(nproc) -vC build install
 
 # build after libvmaf
 # bump: aom /AOM_VERSION=([\d.]+)/ git:https://aomedia.googlesource.com/aom|*
@@ -190,18 +264,18 @@ RUN \
   cd aom && \
   mkdir build_tmp && cd build_tmp && \
   cmake \
-    -G"Unix Makefiles" \
-    -DCMAKE_VERBOSE_MAKEFILE=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DENABLE_EXAMPLES=NO \
-    -DENABLE_DOCS=NO \
-    -DENABLE_TESTS=NO \
-    -DENABLE_TOOLS=NO \
-    -DCONFIG_TUNE_VMAF=1 \
-    -DENABLE_NASM=ON \
-    -DCMAKE_INSTALL_LIBDIR=lib \
-    .. && \
+  -G"Unix Makefiles" \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DENABLE_EXAMPLES=NO \
+  -DENABLE_DOCS=NO \
+  -DENABLE_TESTS=NO \
+  -DENABLE_TOOLS=NO \
+  -DCONFIG_TUNE_VMAF=1 \
+  -DENABLE_NASM=ON \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  .. && \
   make -j$(nproc) install
 
 # bump: libaribb24 /LIBARIBB24_VERSION=([\d.]+)/ https://github.com/nkoriyama/aribb24.git|*
@@ -269,10 +343,10 @@ ARG DAV1D_SHA256=78b15d9954b513ea92d27f39362535ded2243e1b0924fde39f37a31ebed5f76
 
 ADD --checksum=sha256:$DAV1D_SHA256 $DAV1D_URL /dav1d.tar.gz
 RUN tar $TAR_OPTS dav1d.tar.gz && cd dav1d-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static && \
+  ninja -j$(nproc) -vC build install
 
 # bump: davs2 /DAVS2_VERSION=([\d.]+)/ https://github.com/pkuvcl/davs2.git|^1
 # bump: davs2 after ./hashupdate Dockerfile DAVS2 $LATEST
@@ -285,12 +359,12 @@ ARG DAVS2_SHA256=b697d0b376a1c7f7eda3a4cc6d29707c8154c4774358303653f0a9727f923cc
 
 ADD --checksum=sha256:$DAVS2_SHA256 $DAVS2_URL /davs2.tar.gz
 RUN tar $TAR_OPTS davs2.tar.gz && cd davs2-*/build/linux && \
-    ./configure \
-      --disable-asm \
-      --enable-pic \
-      --enable-strip \
-      --disable-cli && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-asm \
+  --enable-pic \
+  --enable-strip \
+  --disable-cli && \
+  make -j$(nproc) install
 
 # bump: fdk-aac /FDK_AAC_VERSION=([\d.]+)/ https://github.com/mstorsjo/fdk-aac.git|*
 # bump: fdk-aac after ./hashupdate Dockerfile FDK_AAC $LATEST
@@ -302,11 +376,11 @@ ARG FDK_AAC_SHA256=e25671cd96b10bad896aa42ab91a695a9e573395262baed4e4a2ff178d6a3
 
 ADD --checksum=sha256:$FDK_AAC_SHA256 $FDK_AAC_URL /fdk-aac.tar.gz
 RUN tar $TAR_OPTS fdk-aac.tar.gz && cd fdk-aac-* && \
-    ./autogen.sh && \
-    ./configure \
-      --disable-shared \
-      --enable-static && \
-    make -j$(nproc) install
+  ./autogen.sh && \
+  ./configure \
+  --disable-shared \
+  --enable-static && \
+  make -j$(nproc) install
 
 # bump: libgme /LIBGME_COMMIT=([[:xdigit:]]+)/ gitrefs:https://github.com/libgme/game-music-emu.git|re:#^refs/heads/master$#|@commit
 # bump: libgme after ./hashupdate Dockerfile LIBGME $LATEST
@@ -318,12 +392,12 @@ RUN \
   cd game-music-emu && git checkout --recurse-submodules $LIBGME_COMMIT && \
   mkdir build && cd build && \
   cmake \
-    -G"Unix Makefiles" \
-    -DCMAKE_VERBOSE_MAKEFILE=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DENABLE_UBSAN=OFF \
-    .. && \
+  -G"Unix Makefiles" \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DENABLE_UBSAN=OFF \
+  .. && \
   make -j$(nproc) install
 
 # bump: libgsm /LIBGSM_COMMIT=([[:xdigit:]]+)/ gitrefs:https://github.com/timothytylee/libgsm.git|re:#^refs/heads/master$#|@commit
@@ -353,11 +427,11 @@ ARG KVAZAAR_SHA256=c5a1699d0bd50bc6bdba485b3438a5681a43d7b2c4fd6311a144740bfa59c
 
 ADD --checksum=sha256:$KVAZAAR_SHA256 $KVAZAAR_URL /kvazaar.tar.gz
 RUN tar $TAR_OPTS kvazaar.tar.gz && cd kvazaar-* && \
-    ./autogen.sh && \
-    ./configure \
-      --disable-shared \
-      --enable-static && \
-    make -j$(nproc) install
+  ./autogen.sh && \
+  ./configure \
+  --disable-shared \
+  --enable-static && \
+  make -j$(nproc) install
 
 # bump: libmodplug /LIBMODPLUG_VERSION=([\d.]+)/ fetch:https://sourceforge.net/projects/modplug-xmms/files/|/libmodplug-([\d.]+).tar.gz/
 # bump: libmodplug after ./hashupdate Dockerfile LIBMODPLUG $LATEST
@@ -369,10 +443,10 @@ ARG LIBMODPLUG_SHA256=457ca5a6c179656d66c01505c0d95fafaead4329b9dbaa0f997d00a350
 
 ADD --checksum=sha256:$LIBMODPLUG_SHA256 $LIBMODPLUG_URL /libmodplug.tar.gz
 RUN tar $TAR_OPTS libmodplug.tar.gz && cd libmodplug-* && \
-    ./configure \
-      --disable-shared \
-      --enable-static && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-shared \
+  --enable-static && \
+  make -j$(nproc) install
 
 # bump: mp3lame /MP3LAME_VERSION=([\d.]+)/ svn:http://svn.code.sf.net/p/lame/svn|/^RELEASE__(.*)$/|/_/./|*
 # bump: mp3lame after ./hashupdate Dockerfile MP3LAME $LATEST
@@ -383,14 +457,14 @@ ARG MP3LAME_SHA256=ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1d
 
 ADD --checksum=sha256:$MP3LAME_SHA256 $MP3LAME_URL /lame.tar.gz
 RUN tar $TAR_OPTS lame.tar.gz && cd lame-* && \
-    ./configure \
-      --disable-shared \
-      --enable-static \
-      --enable-nasm \
-      --disable-gtktest \
-      --disable-cpml \
-      --disable-frontend && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-shared \
+  --enable-static \
+  --enable-nasm \
+  --disable-gtktest \
+  --disable-cpml \
+  --disable-frontend && \
+  make -j$(nproc) install
 
 # bump: lcms2 /LCMS2_VERSION=([\d.]+)/ https://github.com/mm2/Little-CMS.git|^2
 # bump: lcms2 after ./hashupdate Dockerfile LCMS2 $LATEST
@@ -401,11 +475,11 @@ ARG LCMS2_SHA256=d873d34ad8b9b4cea010631f1a6228d2087475e4dc5e763eb81acc23d9d45a5
 
 ADD $LCMS2_URL /lcms2.tar.gz
 RUN tar $TAR_OPTS lcms2.tar.gz && cd lcms2-* && \
-    ./autogen.sh && \
-    ./configure \
-      --enable-static \
-      --disable-shared && \
-    make -j$(nproc) install
+  ./autogen.sh && \
+  ./configure \
+  --enable-static \
+  --disable-shared && \
+  make -j$(nproc) install
 
 # bump: libmysofa /LIBMYSOFA_VERSION=([\d.]+)/ https://github.com/hoene/libmysofa.git|^1
 # bump: libmysofa after ./hashupdate Dockerfile LIBMYSOFA $LATEST
@@ -450,18 +524,18 @@ ARG OPENJPEG_SHA256=368fe0468228e767433c9ebdea82ad9d801a3ad1e4234421f352c8b06e7a
 
 ADD $OPENJPEG_URL /openjpeg.tar.gz
 RUN tar $TAR_OPTS openjpeg.tar.gz && cd openjpeg-* && \
-    mkdir build && cd build && \
-    cmake \
-      -G"Unix Makefiles" \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DBUILD_PKGCONFIG_FILES=ON \
-      -DBUILD_CODEC=OFF \
-      -DWITH_ASTYLE=OFF \
-      -DBUILD_TESTING=OFF \
-      .. && \
-    make -j$(nproc) install
+  mkdir build && cd build && \
+  cmake \
+  -G"Unix Makefiles" \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_PKGCONFIG_FILES=ON \
+  -DBUILD_CODEC=OFF \
+  -DWITH_ASTYLE=OFF \
+  -DBUILD_TESTING=OFF \
+  .. && \
+  make -j$(nproc) install
 
 # bump: opus /OPUS_VERSION=([\d.]+)/ https://github.com/xiph/opus.git|^1
 # bump: opus after ./hashupdate Dockerfile OPUS $LATEST
@@ -473,12 +547,12 @@ ARG OPUS_SHA256=65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1
 
 ADD $OPUS_URL /opus.tar.gz
 RUN tar $TAR_OPTS opus.tar.gz && cd opus-* && \
-    ./configure \
-      --disable-shared \
-      --enable-static \
-      --disable-extra-programs \
-      --disable-doc && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-shared \
+  --enable-static \
+  --disable-extra-programs \
+  --disable-doc && \
+  make -j$(nproc) install
 
 # bump: librabbitmq /LIBRABBITMQ_VERSION=([\d.]+)/ https://github.com/alanxz/rabbitmq-c.git|*
 # bump: librabbitmq after ./hashupdate Dockerfile LIBRABBITMQ $LATEST
@@ -515,10 +589,10 @@ ARG RAV1E_SHA256=da7ae0df2b608e539de5d443c096e109442cdfa6c5e9b4014361211cf61d030
 
 ADD $RAV1E_URL /rav1e.tar.gz
 RUN tar $TAR_OPTS rav1e.tar.gz && cd rav1e-* && \
-    # workaround weird cargo problem when on aws (?) weirdly alpine edge seems to work
-    CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse" \
-    RUSTFLAGS="-C target-feature=+crt-static" \
-    cargo cinstall --release
+  # workaround weird cargo problem when on aws (?) weirdly alpine edge seems to work
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL="sparse" \
+  RUSTFLAGS="-C target-feature=+crt-static" \
+  cargo cinstall --release
 
 # bump: librtmp /LIBRTMP_COMMIT=([[:xdigit:]]+)/ gitrefs:https://git.ffmpeg.org/rtmpdump.git|re:#^refs/heads/master$#|@commit
 # bump: librtmp after ./hashupdate Dockerfile LIBRTMP $LATEST
@@ -655,15 +729,15 @@ ARG SVTAV1_SHA256=f65358499f572a47d6b076dda73681a8162b02c0b619a551bc2d62ead8ee71
 
 ADD $SVTAV1_URL /svtav1.tar.bz2
 RUN tar $TAR_OPTS svtav1.tar.bz2 && cd SVT-AV1-*/Build && \
-    cmake \
-      -G"Unix Makefiles" \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DENABLE_AVX512=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      .. && \
-    make -j$(nproc) install
+  cmake \
+  -G"Unix Makefiles" \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DENABLE_AVX512=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  .. && \
+  make -j$(nproc) install
 
 # has to be before theora
 # bump: ogg /OGG_VERSION=([\d.]+)/ https://github.com/xiph/ogg.git|*
@@ -676,10 +750,10 @@ ARG OGG_SHA256=0eb4b4b9420a0f51db142ba3f9c64b333f826532dc0f48c6410ae51f4799b664
 
 ADD $OGG_URL /libogg.tar.gz
 RUN tar $TAR_OPTS libogg.tar.gz && cd libogg-* && \
-    ./configure \
-      --disable-shared \
-      --enable-static && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-shared \
+  --enable-static && \
+  make -j$(nproc) install
 
 # bump: theora /THEORA_VERSION=([\d.]+)/ https://github.com/xiph/theora.git|*
 # bump: theora after ./hashupdate Dockerfile THEORA $LATEST
@@ -710,12 +784,12 @@ ARG TWOLAME_SHA256=cc35424f6019a88c6f52570b63e1baf50f62963a3eac52a03a800bb070d7c
 
 ADD $TWOLAME_URL /twolame.tar.gz
 RUN tar $TAR_OPTS twolame.tar.gz && cd twolame-* && \
-    ./configure \
-      --disable-shared \
-      --enable-static \
-      --disable-sndfile \
-      --with-pic && \
-    make -j$(nproc) install
+  ./configure \
+  --disable-shared \
+  --enable-static \
+  --disable-sndfile \
+  --with-pic && \
+  make -j$(nproc) install
 
 # bump: uavs3d /UAVS3D_COMMIT=([[:xdigit:]]+)/ gitrefs:https://github.com/uavs3/uavs3d.git|re:#^refs/heads/master$#|@commit
 # bump: uavs3d after ./hashupdate Dockerfile UAVS3D $LATEST
@@ -785,13 +859,13 @@ ARG VPX_SHA256=e935eded7d81631a538bfae703fd1e293aad1c7fd3407ba00440c95105d2011e
 
 ADD $VPX_URL /libvpx.tar.gz
 RUN tar $TAR_OPTS libvpx.tar.gz && cd libvpx-* && \
-    ./configure \
-      --enable-static \
-      --enable-vp9-highbitdepth \
-      --disable-shared \
-      --disable-unit-tests \
-      --disable-examples && \
-    make -j$(nproc) install
+  ./configure \
+  --enable-static \
+  --enable-vp9-highbitdepth \
+  --disable-shared \
+  --disable-unit-tests \
+  --disable-examples && \
+  make -j$(nproc) install
 
 # bump: libwebp /LIBWEBP_VERSION=([\d.]+)/ https://github.com/webmproject/libwebp.git|^1
 # bump: libwebp after ./hashupdate Dockerfile LIBWEBP $LATEST
@@ -803,21 +877,21 @@ ARG LIBWEBP_SHA256=668c9aba45565e24c27e17f7aaf7060a399f7f31dba6c97a044e1feacb930
 
 ADD $LIBWEBP_URL /libwebp.tar.gz
 RUN tar $TAR_OPTS libwebp.tar.gz && cd libwebp-* && \
-    ./autogen.sh && \
-    ./configure \
-      --disable-shared \
-      --enable-static \
-      --with-pic \
-      --enable-libwebpmux \
-      --disable-libwebpextras \
-      --disable-libwebpdemux \
-      --disable-sdl \
-      --disable-gl \
-      --disable-png \
-      --disable-jpeg \
-      --disable-tiff \
-      --disable-gif && \
-    make -j$(nproc) install
+  ./autogen.sh && \
+  ./configure \
+  --disable-shared \
+  --enable-static \
+  --with-pic \
+  --enable-libwebpmux \
+  --disable-libwebpextras \
+  --disable-libwebpdemux \
+  --disable-sdl \
+  --disable-gl \
+  --disable-png \
+  --disable-jpeg \
+  --disable-tiff \
+  --disable-gif && \
+  make -j$(nproc) install
 
 # x264 only have a stable branch no tags and we checkout commit so no hash is needed
 # bump: x264 /X264_VERSION=([[:xdigit:]]+)/ gitrefs:https://code.videolan.org/videolan/x264.git|re:#^refs/heads/stable$#|@commit
@@ -829,11 +903,11 @@ RUN \
   git clone "$X264_URL" && cd x264 && \
   git checkout --recurse-submodules $X264_VERSION && \
   ./configure \
-    --enable-pic \
-    --enable-static \
-    --disable-cli \
-    --disable-lavf \
-    --disable-swscale && \
+  --enable-pic \
+  --enable-static \
+  --disable-cli \
+  --disable-lavf \
+  --disable-swscale && \
   make -j$(nproc) install
 
 # bump: x265 /X265_VERSION=([\d.]+)/ https://bitbucket.org/multicoreware/x265_git.git|*
@@ -847,12 +921,12 @@ ARG X265_URL="https://bitbucket.org/multicoreware/x265_git/downloads/x265_$X265_
 
 ADD --checksum=sha256:$X265_SHA256 $X265_URL /x265_git.tar.bz2
 RUN tar $TAR_OPTS x265_git.tar.bz2 && cd x265_*/build/linux && \
-    sed -i '/^cmake / s/$/ -G "Unix Makefiles" ${CMAKEFLAGS}/' ./multilib.sh && \
-    sed -i 's/ -DENABLE_SHARED=OFF//g' ./multilib.sh && \
-    MAKEFLAGS="-j$(nproc)" \
-    CMAKEFLAGS="-DENABLE_SHARED=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DENABLE_AGGRESSIVE_CHECKS=ON -DENABLE_NASM=ON -DCMAKE_BUILD_TYPE=Release" \
-    ./multilib.sh && \
-    make -C 8bit -j$(nproc) install
+  sed -i '/^cmake / s/$/ -G "Unix Makefiles" ${CMAKEFLAGS}/' ./multilib.sh && \
+  sed -i 's/ -DENABLE_SHARED=OFF//g' ./multilib.sh && \
+  MAKEFLAGS="-j$(nproc)" \
+  CMAKEFLAGS="-DENABLE_SHARED=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DENABLE_AGGRESSIVE_CHECKS=ON -DENABLE_NASM=ON -DCMAKE_BUILD_TYPE=Release" \
+  ./multilib.sh && \
+  make -C 8bit -j$(nproc) install
 
 # bump: xavs2 /XAVS2_VERSION=([\d.]+)/ https://github.com/pkuvcl/xavs2.git|^1
 # bump: xavs2 after ./hashupdate Dockerfile XAVS2 $LATEST
@@ -918,16 +992,16 @@ ARG XEVD_SHA256=8d55c7ec1a9ad4e70fe91fbe129a1d4dd288bce766f466cba07a29452b3cecd8
 
 ADD --checksum=sha256:$XEVD_SHA256 $XEVD_URL /xevd.tar.gz
 RUN tar $TAR_OPTS xevd.tar.gz && cd xevd-* && \
-    echo v$XEVD_VERSION > version.txt && \
-    sed -i 's/mc_filter_bilin/xevdm_mc_filter_bilin/' src_main/sse/xevdm_mc_sse.c && \
-    mkdir build && cd build && \
-    cmake \
-      -G"Unix Makefiles" \
-      -DARM="$(if [ $(uname -m) == aarch64 ]; then echo TRUE; else echo FALSE; fi)" \
-      -DCMAKE_BUILD_TYPE=Release \
-      .. && \
-    make -j$(nproc) install && \
-    ln -s /usr/local/lib/xevd/libxevd.a /usr/local/lib/libxevd.a
+  echo v$XEVD_VERSION > version.txt && \
+  sed -i 's/mc_filter_bilin/xevdm_mc_filter_bilin/' src_main/sse/xevdm_mc_sse.c && \
+  mkdir build && cd build && \
+  cmake \
+  -G"Unix Makefiles" \
+  -DARM="$(if [ $(uname -m) == aarch64 ]; then echo TRUE; else echo FALSE; fi)" \
+  -DCMAKE_BUILD_TYPE=Release \
+  .. && \
+  make -j$(nproc) install && \
+  ln -s /usr/local/lib/xevd/libxevd.a /usr/local/lib/libxevd.a
 
 # bump: zimg /ZIMG_VERSION=([\d.]+)/ https://github.com/sekrit-twc/zimg.git|*
 # bump: zimg after ./hashupdate Dockerfile ZIMG $LATEST
@@ -954,28 +1028,28 @@ ARG LIBJXL_SHA256=1492dfef8dd6c3036446ac3b340005d92ab92f7d48ee3271b5dac1d36945d3
 
 ADD --checksum=sha256:$LIBJXL_SHA256 $LIBJXL_URL /libjxl.tar.gz
 RUN tar $TAR_OPTS libjxl.tar.gz && cd libjxl-* && \
-    ./deps.sh && \
-    cmake -B build \
-      -G"Unix Makefiles" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DBUILD_TESTING=OFF \
-      -DJPEGXL_ENABLE_PLUGINS=OFF \
-      -DJPEGXL_ENABLE_BENCHMARK=OFF \
-      -DJPEGXL_ENABLE_COVERAGE=OFF \
-      -DJPEGXL_ENABLE_EXAMPLES=OFF \
-      -DJPEGXL_ENABLE_FUZZERS=OFF \
-      -DJPEGXL_ENABLE_SJPEG=OFF \
-      -DJPEGXL_ENABLE_SKCMS=OFF \
-      -DJPEGXL_ENABLE_VIEWERS=OFF \
-      -DJPEGXL_FORCE_SYSTEM_GTEST=ON \
-      -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
-      -DJPEGXL_FORCE_SYSTEM_HWY=OFF && \
-    cmake --build build -j$(nproc) && \
-    cmake --install build
+  ./deps.sh && \
+  cmake -B build \
+  -G"Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_INSTALL_PREFIX=/usr/local \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_TESTING=OFF \
+  -DJPEGXL_ENABLE_PLUGINS=OFF \
+  -DJPEGXL_ENABLE_BENCHMARK=OFF \
+  -DJPEGXL_ENABLE_COVERAGE=OFF \
+  -DJPEGXL_ENABLE_EXAMPLES=OFF \
+  -DJPEGXL_ENABLE_FUZZERS=OFF \
+  -DJPEGXL_ENABLE_SJPEG=OFF \
+  -DJPEGXL_ENABLE_SKCMS=OFF \
+  -DJPEGXL_ENABLE_VIEWERS=OFF \
+  -DJPEGXL_FORCE_SYSTEM_GTEST=ON \
+  -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+  -DJPEGXL_FORCE_SYSTEM_HWY=OFF && \
+  cmake --build build -j$(nproc) && \
+  cmake --install build
 # workaround for ffmpeg configure script
 RUN \
   sed -i 's/-ljxl/-ljxl -lstdc++ /' /usr/local/lib/pkgconfig/libjxl.pc && \
@@ -1008,17 +1082,17 @@ ARG LIBVA_SHA256=467c418c2640a178c6baad5be2e00d569842123763b80507721ab87eb7af873
 
 ADD $LIBVA_URL /libva.tar.gz
 RUN tar $TAR_OPTS libva.tar.gz && cd libva-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Ddisable_drm=false \
-      -Dwith_x11=no \
-      -Dwith_glx=no \
-      -Dwith_wayland=no \
-      -Dwith_win32=no \
-      -Dwith_legacy=[] \
-      -Denable_docs=false && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+  -Dbuildtype=release \
+  -Ddefault_library=static \
+  -Ddisable_drm=false \
+  -Dwith_x11=no \
+  -Dwith_glx=no \
+  -Dwith_wayland=no \
+  -Dwith_win32=no \
+  -Dwith_legacy=[] \
+  -Denable_docs=false && \
+  ninja -j$(nproc) -vC build install
 
 # bump: libvpl /LIBVPL_VERSION=([\d.]+)/ https://github.com/intel/libvpl.git|^2
 # bump: libvpl after ./hashupdate Dockerfile LIBVPL $LATEST
@@ -1029,17 +1103,17 @@ ARG LIBVPL_SHA256=7c6bff1c1708d910032c2e6c44998ffff3f5fdbf06b00972bc48bf2dd9e5ac
 
 ADD --checksum=sha256:$LIBVPL_SHA256 $LIBVPL_URL /libvpl.tar.gz
 RUN tar $TAR_OPTS libvpl.tar.gz && cd libvpl-* && \
-    cmake -B build \
-      -G"Unix Makefiles" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DBUILD_TESTS=OFF \
-      -DENABLE_WARNING_AS_ERROR=ON && \
-    cmake --build build -j$(nproc) && \
-    cmake --install build
+  cmake -B build \
+  -G"Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_INSTALL_PREFIX=/usr/local \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_TESTS=OFF \
+  -DENABLE_WARNING_AS_ERROR=ON && \
+  cmake --build build -j$(nproc) && \
+  cmake --install build
 
 # bump: vvenc /VVENC_VERSION=([\d.]+)/ https://github.com/fraunhoferhhi/vvenc.git|*
 # bump: vvenc after ./hashupdate Dockerfile VVENC $LATEST
@@ -1050,15 +1124,15 @@ ARG VVENC_SHA256=28994435e4f7792cc3a907b1c5f20afd0f7ef1fcd82eee2af7713df7a72422e
 
 ADD --checksum=sha256:$VVENC_SHA256 $VVENC_URL /vvenc.tar.gz
 RUN tar $TAR_OPTS vvenc.tar.gz && cd vvenc-* && \
-    # TODO: https://github.com/fraunhoferhhi/vvenc/pull/422
-    sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
-    cmake \
-      -S . \
-      -B build/release-static \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local && \
-    cmake --build build/release-static -j && \
-    cmake --build build/release-static --target install
+  # TODO: https://github.com/fraunhoferhhi/vvenc/pull/422
+  sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
+  cmake \
+  -S . \
+  -B build/release-static \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=/usr/local && \
+  cmake --build build/release-static -j && \
+  cmake --build build/release-static --target install
 
 # bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|*
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
