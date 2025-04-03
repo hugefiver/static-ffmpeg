@@ -94,9 +94,9 @@ RUN sed -i 's/-lvmaf /-lvmaf -lstdc++ /' /usr/local/lib/pkgconfig/libvmaf.pc
 # bump: glib /GLIB_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/glib.git|^2
 # bump: glib after ./hashupdate Dockerfile GLIB $LATEST
 # bump: glib link "NEWS" https://gitlab.gnome.org/GNOME/glib/-/blob/main/NEWS?ref_type=heads
-ARG GLIB_VERSION=2.83.2
-ARG GLIB_URL="https://download.gnome.org/sources/glib/2.83/glib-$GLIB_VERSION.tar.xz"
-ARG GLIB_SHA256=8428d672c8485636d940f03ce8dcdc174f9b3892ac8b2eea76dd281af6a6e937
+ARG GLIB_VERSION=2.84.0
+ARG GLIB_URL="https://download.gnome.org/sources/glib/2.84/glib-$GLIB_VERSION.tar.xz"
+ARG GLIB_SHA256=f8823600cb85425e2815cfad82ea20fdaa538482ab74e7293d58b3f64a5aff6a
 
 ADD --checksum=sha256:$GLIB_SHA256 $GLIB_URL /glib.tar.xz
 RUN tar $TAR_OPTS glib.tar.xz && cd glib-* && \
@@ -109,9 +109,9 @@ RUN tar $TAR_OPTS glib.tar.xz && cd glib-* && \
 # bump: harfbuzz /LIBHARFBUZZ_VERSION=([\d.]+)/ https://github.com/harfbuzz/harfbuzz.git|*
 # bump: harfbuzz after ./hashupdate Dockerfile LIBHARFBUZZ $LATEST
 # bump: harfbuzz link "NEWS" https://github.com/harfbuzz/harfbuzz/blob/main/NEWS
-ARG LIBHARFBUZZ_VERSION=10.1.0
+ARG LIBHARFBUZZ_VERSION=11.0.0
 ARG LIBHARFBUZZ_URL="https://github.com/harfbuzz/harfbuzz/releases/download/$LIBHARFBUZZ_VERSION/harfbuzz-$LIBHARFBUZZ_VERSION.tar.xz"
-ARG LIBHARFBUZZ_SHA256=6ce3520f2d089a33cef0fc48321334b8e0b72141f6a763719aaaecd2779ecb82
+ARG LIBHARFBUZZ_SHA256=f16351bafe214725fe2c1d5b59f0d93e49905a4b247899fb90d70cff953a2b9b
 
 ADD --checksum=sha256:$LIBHARFBUZZ_SHA256 $LIBHARFBUZZ_URL /harfbuzz.tar.xz
 RUN tar $TAR_OPTS harfbuzz.tar.xz && cd harfbuzz-* && \
@@ -123,9 +123,9 @@ RUN tar $TAR_OPTS harfbuzz.tar.xz && cd harfbuzz-* && \
 # bump: cairo /CAIRO_VERSION=([\d.]+)/ https://gitlab.freedesktop.org/cairo/cairo.git|^1
 # bump: cairo after ./hashupdate Dockerfile CAIRO $LATEST
 # bump: cairo link "NEWS" https://gitlab.freedesktop.org/cairo/cairo/-/blob/master/NEWS?ref_type=heads
-ARG CAIRO_VERSION=1.18.2
+ARG CAIRO_VERSION=1.18.4
 ARG CAIRO_URL="https://cairographics.org/releases/cairo-$CAIRO_VERSION.tar.xz"
-ARG CAIRO_SHA256=a62b9bb42425e844cc3d6ddde043ff39dbabedd1542eba57a2eb79f85889d45a
+ARG CAIRO_SHA256=445ed8208a6e4823de1226a74ca319d3600e83f6369f99b14265006599c32ccb
 
 ADD --checksum=sha256:$CAIRO_SHA256 $CAIRO_URL /cairo.tar.xz
 RUN tar $TAR_OPTS cairo.tar.xz && cd cairo-* && \
@@ -143,11 +143,14 @@ RUN tar $TAR_OPTS cairo.tar.xz && cd cairo-* && \
 # bump: pango /PANGO_VERSION=([\d.]+)/ https://github.com/GNOME/pango.git|/\d+\.\d+\.\d+/|*
 # bump: pango after ./hashupdate Dockerfile PANGO $LATEST
 # bump: pango link "NEWS" https://gitlab.gnome.org/GNOME/pango/-/blob/main/NEWS?ref_type=heads
-ARG PANGO_VERSION=1.55.5
-ARG PANGO_URL="https://download.gnome.org/sources/pango/1.55/pango-$PANGO_VERSION.tar.xz"
-ARG PANGO_SHA256=e396126ea08203cbd8ef12638e6222e2e1fd8aa9cac6743072fedc5f2d820dd8
+ARG PANGO_VERSION=1.56.3
+ARG PANGO_URL="https://download.gnome.org/sources/pango/1.56/pango-$PANGO_VERSION.tar.xz"
+ARG PANGO_SHA256=2606252bc25cd8d24e1b7f7e92c3a272b37acd6734347b73b47a482834ba2491
 
 ADD --checksum=sha256:$PANGO_SHA256 $PANGO_URL /pango.tar.xz
+
+# TODO: add -Dbuild-testsuite=false when in stable release
+# TODO: -Ddefault_library=both currently to not fail building tests
 RUN tar $TAR_OPTS pango.tar.xz && cd pango-* && \
     meson setup build \
       -Dbuildtype=release \
@@ -159,31 +162,33 @@ RUN tar $TAR_OPTS pango.tar.xz && cd pango-* && \
 # bump: librsvg /LIBRSVG_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/librsvg.git|^2
 # bump: librsvg after ./hashupdate Dockerfile LIBRSVG $LATEST
 # bump: librsvg link "NEWS" https://gitlab.gnome.org/GNOME/librsvg/-/blob/master/NEWS
-ARG LIBRSVG_VERSION=2.59.2
-ARG LIBRSVG_URL="https://download.gnome.org/sources/librsvg/2.59/librsvg-$LIBRSVG_VERSION.tar.xz"
-ARG LIBRSVG_SHA256=ecd293fb0cc338c170171bbc7bcfbea6725d041c95f31385dc935409933e4597
+ARG LIBRSVG_VERSION=2.60.0
+ARG LIBRSVG_URL="https://download.gnome.org/sources/librsvg/2.60/librsvg-$LIBRSVG_VERSION.tar.xz"
+ARG LIBRSVG_SHA256=0b6ffccdf6e70afc9876882f5d2ce9ffcf2c713cbaaf1ad90170daa752e1eec3
 
 ADD --checksum=sha256:$LIBRSVG_SHA256 $LIBRSVG_URL /librsvg.tar.xz
 RUN tar $TAR_OPTS librsvg.tar.xz && cd librsvg-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static \
-      -Ddocs=disabled \
-      -Dintrospection=disabled \
-      -Dpixbuf=disabled \
-      -Dpixbuf-loader=disabled \
-      -Dvala=disabled \
-      -Dtests=false && \
-    ninja -j$(nproc) -vC build install
+  # workaround for https://gitlab.gnome.org/GNOME/librsvg/-/issues/1158
+  sed -i "/^if host_system in \['windows'/s/, 'linux'//" meson.build && \
+  meson setup build \
+    -Dbuildtype=release \
+    -Ddefault_library=static \
+    -Ddocs=disabled \
+    -Dintrospection=disabled \
+    -Dpixbuf=disabled \
+    -Dpixbuf-loader=disabled \
+    -Dvala=disabled \
+    -Dtests=false && \
+  ninja -j$(nproc) -vC build install
 
 # build after libvmaf
 # bump: aom /AOM_VERSION=([\d.]+)/ git:https://aomedia.googlesource.com/aom|*
 # bump: aom after ./hashupdate Dockerfile AOM $LATEST
 # bump: aom after COMMIT=$(git ls-remote https://aomedia.googlesource.com/aom v$LATEST^{} | awk '{print $1}') && sed -i -E "s/^ARG AOM_COMMIT=.*/ARG AOM_COMMIT=$COMMIT/" Dockerfile
 # bump: aom link "CHANGELOG" https://aomedia.googlesource.com/aom/+/refs/tags/v$LATEST/CHANGELOG
-ARG AOM_VERSION=3.11.0
+ARG AOM_VERSION=3.12.0
 ARG AOM_URL="https://aomedia.googlesource.com/aom"
-ARG AOM_COMMIT=d6f30ae474dd6c358f26de0a0fc26a0d7340a84c
+ARG AOM_COMMIT=3b624af45b86646a20b11a9ff803aeae588cdee6
 RUN git clone --depth 1 --branch v$AOM_VERSION "$AOM_URL"
 RUN cd aom && test $(git rev-parse HEAD) = $AOM_COMMIT
 RUN \
@@ -263,16 +268,16 @@ RUN \
 # bump: dav1d /DAV1D_VERSION=([\d.]+)/ https://code.videolan.org/videolan/dav1d.git|*
 # bump: dav1d after ./hashupdate Dockerfile DAV1D $LATEST
 # bump: dav1d link "Release notes" https://code.videolan.org/videolan/dav1d/-/tags/$LATEST
-ARG DAV1D_VERSION=1.5.0
+ARG DAV1D_VERSION=1.5.1
 ARG DAV1D_URL="https://code.videolan.org/videolan/dav1d/-/archive/$DAV1D_VERSION/dav1d-$DAV1D_VERSION.tar.gz"
-ARG DAV1D_SHA256=78b15d9954b513ea92d27f39362535ded2243e1b0924fde39f37a31ebed5f76b
+ARG DAV1D_SHA256=fa635e2bdb25147b1384007c83e15de44c589582bb3b9a53fc1579cb9d74b695
 
 ADD --checksum=sha256:$DAV1D_SHA256 $DAV1D_URL /dav1d.tar.gz
 RUN tar $TAR_OPTS dav1d.tar.gz && cd dav1d-* && \
-    meson setup build \
-      -Dbuildtype=release \
-      -Ddefault_library=static && \
-    ninja -j$(nproc) -vC build install
+  meson setup build \
+    -Dbuildtype=release \
+    -Ddefault_library=static && \
+  ninja -j$(nproc) -vC build install
 
 # bump: davs2 /DAVS2_VERSION=([\d.]+)/ https://github.com/pkuvcl/davs2.git|^1
 # bump: davs2 after ./hashupdate Dockerfile DAVS2 $LATEST
@@ -312,7 +317,7 @@ RUN tar $TAR_OPTS fdk-aac.tar.gz && cd fdk-aac-* && \
 # bump: libgme after ./hashupdate Dockerfile LIBGME $LATEST
 # bump: libgme link "Source diff $CURRENT..$LATEST" https://github.com/libgme/game-music-emu/compare/$CURRENT..v$LATEST
 ARG LIBGME_URL="https://github.com/libgme/game-music-emu.git"
-ARG LIBGME_COMMIT=cb2c1ccc7563ed58321cc3b6b8507b9015192b80
+ARG LIBGME_COMMIT=3afa3ea124c5360ad561d7acb7ba97ae7497841d
 RUN \
   git clone "$LIBGME_URL" && \
   cd game-music-emu && git checkout --recurse-submodules $LIBGME_COMMIT && \
@@ -395,9 +400,9 @@ RUN tar $TAR_OPTS lame.tar.gz && cd lame-* && \
 # bump: lcms2 /LCMS2_VERSION=([\d.]+)/ https://github.com/mm2/Little-CMS.git|^2
 # bump: lcms2 after ./hashupdate Dockerfile LCMS2 $LATEST
 # bump: lcms2 link "Release" https://github.com/mm2/Little-CMS/releases/tag/lcms$LATEST
-ARG LCMS2_VERSION=2.16
+ARG LCMS2_VERSION=2.17
 ARG LCMS2_URL="https://github.com/mm2/Little-CMS/releases/download/lcms$LCMS2_VERSION/lcms2-$LCMS2_VERSION.tar.gz"
-ARG LCMS2_SHA256=d873d34ad8b9b4cea010631f1a6228d2087475e4dc5e763eb81acc23d9d45a51
+ARG LCMS2_SHA256=d11af569e42a1baa1650d20ad61d12e41af4fead4aa7964a01f93b08b53ab074
 
 ADD $LCMS2_URL /lcms2.tar.gz
 RUN tar $TAR_OPTS lcms2.tar.gz && cd lcms2-* && \
@@ -649,21 +654,21 @@ RUN tar $TAR_OPTS rav1e.tar.gz && cd rav1e-* && \
 # bump: svtav1 /SVTAV1_VERSION=([\d.]+)/ https://gitlab.com/AOMediaCodec/SVT-AV1.git|*
 # bump: svtav1 after ./hashupdate Dockerfile SVTAV1 $LATEST
 # bump: svtav1 link "Release notes" https://gitlab.com/AOMediaCodec/SVT-AV1/-/releases/v$LATEST
-ARG SVTAV1_VERSION=2.3.0
+ARG SVTAV1_VERSION=3.0.2
 ARG SVTAV1_URL="https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-AV1-v$SVTAV1_VERSION.tar.bz2"
-ARG SVTAV1_SHA256=f65358499f572a47d6b076dda73681a8162b02c0b619a551bc2d62ead8ee719a
+ARG SVTAV1_SHA256=7548a380cd58a46998ab4f1a02901ef72c37a7c6317c930cde5df2e6349e437b
 
 ADD $SVTAV1_URL /svtav1.tar.bz2
 RUN tar $TAR_OPTS svtav1.tar.bz2 && cd SVT-AV1-*/Build && \
-    cmake \
-      -G"Unix Makefiles" \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DENABLE_AVX512=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      .. && \
-    make -j$(nproc) install
+  cmake \
+    -G"Unix Makefiles" \
+    -DCMAKE_VERBOSE_MAKEFILE=ON \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DENABLE_AVX512=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    .. && \
+  make -j$(nproc) install
 
 # has to be before theora
 # bump: ogg /OGG_VERSION=([\d.]+)/ https://github.com/xiph/ogg.git|*
@@ -685,9 +690,9 @@ RUN tar $TAR_OPTS libogg.tar.gz && cd libogg-* && \
 # bump: theora after ./hashupdate Dockerfile THEORA $LATEST
 # bump: theora link "Release notes" https://github.com/xiph/theora/releases/tag/v$LATEST
 # bump: theora link "Source diff $CURRENT..$LATEST" https://github.com/xiph/theora/compare/v$CURRENT..v$LATEST
-# ARG THEORA_VERSION=1.1.1
-# ARG THEORA_URL="https://downloads.xiph.org/releases/theora/libtheora-$THEORA_VERSION.tar.bz2"
-# ARG THEORA_SHA256=b6ae1ee2fa3d42ac489287d3ec34c5885730b1296f0801ae577a35193d3affbc
+# ARG THEORA_VERSION=1.2.0
+# ARG THEORA_URL="http://downloads.xiph.org/releases/theora/libtheora-$THEORA_VERSION.tar.gz"
+# ARG THEORA_SHA256=279327339903b544c28a92aeada7d0dcfd0397b59c2f368cc698ac56f515906e
 # ADD $THEORA_URL /libtheora.tar.bz2
 # RUN \
 #   tar $TAR_OPTS libtheora.tar.bz2 && cd libtheora-* && \
@@ -1044,29 +1049,29 @@ RUN tar $TAR_OPTS libvpl.tar.gz && cd libvpl-* && \
 # bump: vvenc /VVENC_VERSION=([\d.]+)/ https://github.com/fraunhoferhhi/vvenc.git|*
 # bump: vvenc after ./hashupdate Dockerfile VVENC $LATEST
 # bump: vvenc link "CHANGELOG" https://github.com/fraunhoferhhi/vvenc/releases/tag/v$LATEST
-ARG VVENC_VERSION=1.13.0
+ARG VVENC_VERSION=1.13.1
 ARG VVENC_URL="https://github.com/fraunhoferhhi/vvenc/archive/refs/tags/v$VVENC_VERSION.tar.gz"
-ARG VVENC_SHA256=28994435e4f7792cc3a907b1c5f20afd0f7ef1fcd82eee2af7713df7a72422eb
+ARG VVENC_SHA256=9d0d88319b9c200ebf428471a3f042ea7dcd868e8be096c66e19120a671a0bc8
 
 ADD --checksum=sha256:$VVENC_SHA256 $VVENC_URL /vvenc.tar.gz
 RUN tar $TAR_OPTS vvenc.tar.gz && cd vvenc-* && \
-    # TODO: https://github.com/fraunhoferhhi/vvenc/pull/422
-    sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
-    cmake \
-      -S . \
-      -B build/release-static \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local && \
-    cmake --build build/release-static -j && \
-    cmake --build build/release-static --target install
+  sed -i 's/-Werror;//' source/Lib/vvenc/CMakeLists.txt && \
+  cmake \
+    -S . \
+    -B build/release-static \
+    -DVVENC_ENABLE_WERROR=OFF \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local && \
+  cmake --build build/release-static -j && \
+  cmake --build build/release-static --target install
 
 # bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|*
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
 # bump: ffmpeg link "Changelog" https://github.com/FFmpeg/FFmpeg/blob/n$LATEST/Changelog
 # bump: ffmpeg link "Source diff $CURRENT..$LATEST" https://github.com/FFmpeg/FFmpeg/compare/n$CURRENT..n$LATEST
-ARG FFMPEG_VERSION=7.1
+ARG FFMPEG_VERSION=7.1.1
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
-ARG FFMPEG_SHA256=fd59e6160476095082e94150ada5a6032d7dcc282fe38ce682a00c18e7820528
+ARG FFMPEG_SHA256=0c8da2f11579a01e014fc007cbacf5bb4da1d06afd0b43c7f8097ec7c0f143ba
 ARG ENABLE_FDKAAC=
 # sed changes --toolchain=hardened -pie to -static-pie
 #
@@ -1084,12 +1089,13 @@ RUN tar $TAR_OPTS ffmpeg.tar.bz2
 RUN apk add --no-cache git cmake
 
 RUN \
-  git clone -b master --depth 1 https://github.com/microsoft/mimalloc.git mimalloc && \
+  git clone -b v2.2.2 --depth 1 https://github.com/microsoft/mimalloc.git mimalloc && \
   cd mimalloc && \
   mkdir build && \
   cd build && \
   cmake -D CMAKE_BUILD_TYPE=Release -DMI_OVERRIDE=OFF -DMI_INSTALL_TOPLEVEL=ON .. && \
-  make -j$(nproc) && \
+  # make -j$(nproc) && \
+  cmake --build . --config=Release && \
   make install
 
 # RUN apk add --no-cache mimalloc2-dev
@@ -1098,6 +1104,8 @@ ADD patches/* ./patches/
 
 RUN cd ffmpeg* && \
   patch -u <../patches/mimalloc.patch && \
+  # workaround for https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2387
+  sed -i 's/svt_av1_enc_init_handle(&svt_enc->svt_handle, svt_enc, &svt_enc->enc_params)/svt_av1_enc_init_handle(\&svt_enc->svt_handle, \&svt_enc->enc_params)/g' libavcodec/libsvtav1.c && \
   FDKAAC_FLAGS=$(if [[ -n "$ENABLE_FDKAAC" ]] ;then echo " --enable-libfdk-aac --enable-nonfree " ;else echo ""; fi) && \
   sed -i 's/add_ldexeflags -fPIE -pie/add_ldexeflags -fPIE -static-pie/' configure && \
   ./configure \
