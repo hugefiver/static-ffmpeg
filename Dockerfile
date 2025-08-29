@@ -94,9 +94,9 @@ RUN sed -i 's/-lvmaf /-lvmaf -lstdc++ /' /usr/local/lib/pkgconfig/libvmaf.pc
 # bump: glib /GLIB_VERSION=([\d.]+)/ https://gitlab.gnome.org/GNOME/glib.git|^2
 # bump: glib after ./hashupdate Dockerfile GLIB $LATEST
 # bump: glib link "NEWS" https://gitlab.gnome.org/GNOME/glib/-/blob/main/NEWS?ref_type=heads
-ARG GLIB_VERSION=2.84.0
+ARG GLIB_VERSION=2.84.1
 ARG GLIB_URL="https://download.gnome.org/sources/glib/2.84/glib-$GLIB_VERSION.tar.xz"
-ARG GLIB_SHA256=f8823600cb85425e2815cfad82ea20fdaa538482ab74e7293d58b3f64a5aff6a
+ARG GLIB_SHA256=2b4bc2ec49611a5fc35f86aca855f2ed0196e69e53092bab6bb73396bf30789a
 
 ADD --checksum=sha256:$GLIB_SHA256 $GLIB_URL /glib.tar.xz
 RUN tar $TAR_OPTS glib.tar.xz && cd glib-* && \
@@ -109,9 +109,9 @@ RUN tar $TAR_OPTS glib.tar.xz && cd glib-* && \
 # bump: harfbuzz /LIBHARFBUZZ_VERSION=([\d.]+)/ https://github.com/harfbuzz/harfbuzz.git|*
 # bump: harfbuzz after ./hashupdate Dockerfile LIBHARFBUZZ $LATEST
 # bump: harfbuzz link "NEWS" https://github.com/harfbuzz/harfbuzz/blob/main/NEWS
-ARG LIBHARFBUZZ_VERSION=11.0.0
+ARG LIBHARFBUZZ_VERSION=11.4.4
 ARG LIBHARFBUZZ_URL="https://github.com/harfbuzz/harfbuzz/releases/download/$LIBHARFBUZZ_VERSION/harfbuzz-$LIBHARFBUZZ_VERSION.tar.xz"
-ARG LIBHARFBUZZ_SHA256=f16351bafe214725fe2c1d5b59f0d93e49905a4b247899fb90d70cff953a2b9b
+ARG LIBHARFBUZZ_SHA256=1053f17146ea587fafa9f56c9e4e0f4b3fefae4ba2569155d8bc9a35208f58c5
 
 ADD --checksum=sha256:$LIBHARFBUZZ_SHA256 $LIBHARFBUZZ_URL /harfbuzz.tar.xz
 RUN tar $TAR_OPTS harfbuzz.tar.xz && cd harfbuzz-* && \
@@ -143,9 +143,9 @@ RUN tar $TAR_OPTS cairo.tar.xz && cd cairo-* && \
 # bump: pango /PANGO_VERSION=([\d.]+)/ https://github.com/GNOME/pango.git|/\d+\.\d+\.\d+/|*
 # bump: pango after ./hashupdate Dockerfile PANGO $LATEST
 # bump: pango link "NEWS" https://gitlab.gnome.org/GNOME/pango/-/blob/main/NEWS?ref_type=heads
-ARG PANGO_VERSION=1.56.3
+ARG PANGO_VERSION=1.56.4
 ARG PANGO_URL="https://download.gnome.org/sources/pango/1.56/pango-$PANGO_VERSION.tar.xz"
-ARG PANGO_SHA256=2606252bc25cd8d24e1b7f7e92c3a272b37acd6734347b73b47a482834ba2491
+ARG PANGO_SHA256=17065e2fcc5f5a5bdbffc884c956bfc7c451a96e8c4fb2f8ad837c6413cb5a01
 
 ADD --checksum=sha256:$PANGO_SHA256 $PANGO_URL /pango.tar.xz
 
@@ -186,9 +186,9 @@ RUN tar $TAR_OPTS librsvg.tar.xz && cd librsvg-* && \
 # bump: aom after ./hashupdate Dockerfile AOM $LATEST
 # bump: aom after COMMIT=$(git ls-remote https://aomedia.googlesource.com/aom v$LATEST^{} | awk '{print $1}') && sed -i -E "s/^ARG AOM_COMMIT=.*/ARG AOM_COMMIT=$COMMIT/" Dockerfile
 # bump: aom link "CHANGELOG" https://aomedia.googlesource.com/aom/+/refs/tags/v$LATEST/CHANGELOG
-ARG AOM_VERSION=3.12.0
+ARG AOM_VERSION=3.12.1
 ARG AOM_URL="https://aomedia.googlesource.com/aom"
-ARG AOM_COMMIT=3b624af45b86646a20b11a9ff803aeae588cdee6
+ARG AOM_COMMIT=10aece4157eb79315da205f39e19bf6ab3ee30d0
 RUN git clone --depth 1 --branch v$AOM_VERSION "$AOM_URL"
 RUN cd aom && test $(git rev-parse HEAD) = $AOM_COMMIT
 RUN \
@@ -228,9 +228,9 @@ RUN \
 # bump: libass /LIBASS_VERSION=([\d.]+)/ https://github.com/libass/libass.git|*
 # bump: libass after ./hashupdate Dockerfile LIBASS $LATEST
 # bump: libass link "Release notes" https://github.com/libass/libass/releases/tag/$LATEST
-# ARG LIBASS_VERSION=0.17.3
+# ARG LIBASS_VERSION=0.17.4
 # ARG LIBASS_URL="https://github.com/libass/libass/releases/download/$LIBASS_VERSION/libass-$LIBASS_VERSION.tar.gz"
-# ARG LIBASS_SHA256=da7c348deb6fa6c24507afab2dee7545ba5dd5bbf90a137bfe9e738f7df68537
+# ARG LIBASS_SHA256=a886b3b80867f437bc55cff3280a652bfa0d37b43d2aff39ddf3c4f288b8c5a8
 # ADD $LIBASS_URL /libass.tar.gz
 # RUN \
 #   tar $TAR_OPTS libass.tar.gz && cd libass-* && \
@@ -242,11 +242,11 @@ RUN \
 # bump: libbluray /LIBBLURAY_VERSION=([\d.]+)/ https://code.videolan.org/videolan/libbluray.git|*
 # bump: libbluray after ./hashupdate Dockerfile LIBBLURAY $LATEST
 # bump: libbluray link "ChangeLog" https://code.videolan.org/videolan/libbluray/-/blob/master/ChangeLog
-# ARG LIBBLURAY_VERSION=1.3.4
+# ARG LIBBLURAY_VERSION=1.4.0
 # ARG LIBBLURAY_URL="https://code.videolan.org/videolan/libbluray/-/archive/$LIBBLURAY_VERSION/libbluray-$LIBBLURAY_VERSION.tar.gz"
-# ARG LIBBLURAY_SHA256=9820df5c3e87777be116ca225ad7ee026a3ff42b2447c7fe641910fb23aad3c2
+# ARG LIBBLURAY_SHA256=0dc218f79435798a62da2a0510e0e921a3f7c1b140507df8e65f48d98046f024
 # # TODO: bump config? at least checkout to make commit sticky
-# ARG LIBUDFREAD_COMMIT=a35513813819efadca82c4b90edbe1407b1b9e05
+# ARG LIBUDFREAD_COMMIT=c3cd5cbb097924557ea4d9da1ff76a74620c51a8
 # # dec_init rename is to workaround https://code.videolan.org/videolan/libbluray/-/issues/43
 # ADD $LIBBLURAY_URL /libbluray.tar.gz
 # RUN \
@@ -317,7 +317,7 @@ RUN tar $TAR_OPTS fdk-aac.tar.gz && cd fdk-aac-* && \
 # bump: libgme after ./hashupdate Dockerfile LIBGME $LATEST
 # bump: libgme link "Source diff $CURRENT..$LATEST" https://github.com/libgme/game-music-emu/compare/$CURRENT..v$LATEST
 ARG LIBGME_URL="https://github.com/libgme/game-music-emu.git"
-ARG LIBGME_COMMIT=3afa3ea124c5360ad561d7acb7ba97ae7497841d
+ARG LIBGME_COMMIT=27f79a636bdaad5dc390c673aa3a8993017fbe1e
 RUN \
   git clone "$LIBGME_URL" && \
   cd game-music-emu && git checkout --recurse-submodules $LIBGME_COMMIT && \
@@ -615,9 +615,9 @@ RUN tar $TAR_OPTS rav1e.tar.gz && cd rav1e-* && \
 # bump: libssh after ./hashupdate Dockerfile LIBSSH $LATEST
 # bump: libssh link "Source diff $CURRENT..$LATEST" https://gitlab.com/libssh/libssh-mirror/-/compare/libssh-$CURRENT...libssh-$LATEST
 # bump: libssh link "Release notes" https://gitlab.com/libssh/libssh-mirror/-/tags/libssh-$LATEST
-# ARG LIBSSH_VERSION=0.11.1
+# ARG LIBSSH_VERSION=0.11.2
 # ARG LIBSSH_URL="https://gitlab.com/libssh/libssh-mirror/-/archive/libssh-$LIBSSH_VERSION/libssh-mirror-libssh-$LIBSSH_VERSION.tar.gz"
-# ARG LIBSSH_SHA256=b43ef9c91b6c3db64e7ba3db101eb89dbe645db63489c19d4f88cf6f84911ec6
+# ARG LIBSSH_SHA256=e28a8a6d37b285c1015fe38a015f450f66e7fdb8dd76be23e9e32ef9640f1859
 # # LIBSSH_STATIC=1 is REQUIRED to link statically against libssh.a so add to pkg-config file
 # # ADD $LIBSSH_URL /libssh.tar.gz
 # # RUN \
@@ -654,9 +654,9 @@ RUN tar $TAR_OPTS rav1e.tar.gz && cd rav1e-* && \
 # bump: svtav1 /SVTAV1_VERSION=([\d.]+)/ https://gitlab.com/AOMediaCodec/SVT-AV1.git|*
 # bump: svtav1 after ./hashupdate Dockerfile SVTAV1 $LATEST
 # bump: svtav1 link "Release notes" https://gitlab.com/AOMediaCodec/SVT-AV1/-/releases/v$LATEST
-ARG SVTAV1_VERSION=3.0.2
+ARG SVTAV1_VERSION=3.1.2
 ARG SVTAV1_URL="https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-AV1-v$SVTAV1_VERSION.tar.bz2"
-ARG SVTAV1_SHA256=7548a380cd58a46998ab4f1a02901ef72c37a7c6317c930cde5df2e6349e437b
+ARG SVTAV1_SHA256=802e9bb2b14f66e8c638f54857ccb84d3536144b0ae18b9f568bbf2314d2de88
 
 ADD $SVTAV1_URL /svtav1.tar.bz2
 RUN tar $TAR_OPTS svtav1.tar.bz2 && cd SVT-AV1-*/Build && \
@@ -675,9 +675,9 @@ RUN tar $TAR_OPTS svtav1.tar.bz2 && cd SVT-AV1-*/Build && \
 # bump: ogg after ./hashupdate Dockerfile OGG $LATEST
 # bump: ogg link "CHANGES" https://github.com/xiph/ogg/blob/master/CHANGES
 # bump: ogg link "Source diff $CURRENT..$LATEST" https://github.com/xiph/ogg/compare/v$CURRENT..v$LATEST
-ARG OGG_VERSION=1.3.5
+ARG OGG_VERSION=1.3.6
 ARG OGG_URL="https://downloads.xiph.org/releases/ogg/libogg-$OGG_VERSION.tar.gz"
-ARG OGG_SHA256=0eb4b4b9420a0f51db142ba3f9c64b333f826532dc0f48c6410ae51f4799b664
+ARG OGG_SHA256=83e6704730683d004d20e21b8f7f55dcb3383cdf84c0daedf30bde175f774638
 
 ADD $OGG_URL /libogg.tar.gz
 RUN tar $TAR_OPTS libogg.tar.gz && cd libogg-* && \
@@ -784,9 +784,9 @@ RUN tar $TAR_OPTS twolame.tar.gz && cd twolame-* && \
 # bump: libvpx after ./hashupdate Dockerfile VPX $LATEST
 # bump: libvpx link "CHANGELOG" https://github.com/webmproject/libvpx/blob/master/CHANGELOG
 # bump: libvpx link "Source diff $CURRENT..$LATEST" https://github.com/webmproject/libvpx/compare/v$CURRENT..v$LATEST
-ARG VPX_VERSION=1.15.0
+ARG VPX_VERSION=1.15.2
 ARG VPX_URL="https://github.com/webmproject/libvpx/archive/v$VPX_VERSION.tar.gz"
-ARG VPX_SHA256=e935eded7d81631a538bfae703fd1e293aad1c7fd3407ba00440c95105d2011e
+ARG VPX_SHA256=26fcd3db88045dee380e581862a6ef106f49b74b6396ee95c2993a260b4636aa
 
 ADD $VPX_URL /libvpx.tar.gz
 RUN tar $TAR_OPTS libvpx.tar.gz && cd libvpx-* && \
@@ -802,9 +802,9 @@ RUN tar $TAR_OPTS libvpx.tar.gz && cd libvpx-* && \
 # bump: libwebp after ./hashupdate Dockerfile LIBWEBP $LATEST
 # bump: libwebp link "Release notes" https://github.com/webmproject/libwebp/releases/tag/v$LATEST
 # bump: libwebp link "Source diff $CURRENT..$LATEST" https://github.com/webmproject/libwebp/compare/v$CURRENT..v$LATEST
-ARG LIBWEBP_VERSION=1.5.0
+ARG LIBWEBP_VERSION=1.6.0
 ARG LIBWEBP_URL="https://github.com/webmproject/libwebp/archive/v$LIBWEBP_VERSION.tar.gz"
-ARG LIBWEBP_SHA256=668c9aba45565e24c27e17f7aaf7060a399f7f31dba6c97a044e1feacb930f37
+ARG LIBWEBP_SHA256=93a852c2b3efafee3723efd4636de855b46f9fe1efddd607e1f42f60fc8f2136
 
 ADD $LIBWEBP_URL /libwebp.tar.gz
 RUN tar $TAR_OPTS libwebp.tar.gz && cd libwebp-* && \
@@ -937,9 +937,9 @@ RUN tar $TAR_OPTS xevd.tar.gz && cd xevd-* && \
 # bump: zimg /ZIMG_VERSION=([\d.]+)/ https://github.com/sekrit-twc/zimg.git|*
 # bump: zimg after ./hashupdate Dockerfile ZIMG $LATEST
 # bump: zimg link "ChangeLog" https://github.com/sekrit-twc/zimg/blob/master/ChangeLog
-# ARG ZIMG_VERSION=3.0.5
+# ARG ZIMG_VERSION=3.0.6
 # ARG ZIMG_URL="https://github.com/sekrit-twc/zimg/archive/release-$ZIMG_VERSION.tar.gz"
-# ARG ZIMG_SHA256=a9a0226bf85e0d83c41a8ebe4e3e690e1348682f6a2a7838f1b8cbff1b799bcf
+# ARG ZIMG_SHA256=be89390f13a5c9b2388ce0f44a5e89364a20c1c57ce46d382b1fcc3967057577
 # ADD $ZIMG_URL /zimg.tar.gz
 # RUN \
 #   tar $TAR_OPTS zimg.tar.gz && cd zimg-* && \
@@ -1069,9 +1069,9 @@ RUN tar $TAR_OPTS vvenc.tar.gz && cd vvenc-* && \
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
 # bump: ffmpeg link "Changelog" https://github.com/FFmpeg/FFmpeg/blob/n$LATEST/Changelog
 # bump: ffmpeg link "Source diff $CURRENT..$LATEST" https://github.com/FFmpeg/FFmpeg/compare/n$CURRENT..n$LATEST
-ARG FFMPEG_VERSION=7.1.1
+ARG FFMPEG_VERSION=8.0
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
-ARG FFMPEG_SHA256=0c8da2f11579a01e014fc007cbacf5bb4da1d06afd0b43c7f8097ec7c0f143ba
+ARG FFMPEG_SHA256=3e74acc48ddb9f5f70b6747d3f439d51e7cc5497f097d58e5975c84488f4d186
 ARG ENABLE_FDKAAC=
 # sed changes --toolchain=hardened -pie to -static-pie
 #

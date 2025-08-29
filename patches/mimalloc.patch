@@ -1,8 +1,8 @@
 diff --git a/configure b/configure
-index f6f5c29..f615947 100755
+index 9fe28c5a..330c81ef 100755
 --- a/configure
 +++ b/configure
-@@ -6516,14 +6516,18 @@ case "$custom_allocator" in
+@@ -6681,14 +6681,18 @@ case "$custom_allocator" in
              malloc_prefix=$($pkg_config --variable=jemalloc_prefix $pkg_config_flags jemalloc 2>/dev/null)
          require_pkg_config custom_allocator jemalloc jemalloc/jemalloc.h ${malloc_prefix}malloc
      ;;
@@ -18,6 +18,6 @@ index f6f5c29..f615947 100755
          require_pkg_config custom_allocator "$custom_allocator" stdlib.h malloc
      ;;
  esac
- 
+
  if test -n "$custom_allocator"; then
      add_extralibs "$custom_allocator_extralibs"
