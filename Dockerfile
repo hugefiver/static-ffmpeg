@@ -855,7 +855,7 @@ RUN \
   cmake --build build/release-static -j && \
   cmake --build build/release-static --target install
 
-FROM base AS builder
+FROM base AS ffmpeg-build-base
 COPY --from=dep-aom /usr/local/ /usr/local/
 COPY --from=dep-subtitle /usr/local/ /usr/local/
 COPY --from=dep-bluray /usr/local/ /usr/local/
@@ -887,8 +887,6 @@ COPY --from=dep-vvenc /usr/local/ /usr/local/
 ARG FFMPEG_VERSION=9.0
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
 ARG FFMPEG_SHA256=ce84a9d01766eacd271bef8fa6447593ccc691801b48ac4e7b9dc90a9483a422
-ARG ENABLE_FDKAAC=
-ARG BUILD_VARIANT=default
 ADD --checksum=sha256:$FFMPEG_SHA256 $FFMPEG_URL /ffmpeg.tar.bz2
 # sed changes --toolchain=hardened -pie to -static-pie
 #
@@ -944,6 +942,10 @@ RUN \
   make install
 
 ADD patches/* ./patches/
+
+FROM ffmpeg-build-base AS builder
+ARG ENABLE_FDKAAC=
+ARG BUILD_VARIANT=default
 
 RUN \
   tar $TAR_OPTS ffmpeg.tar.bz2 && cd ffmpeg* && \

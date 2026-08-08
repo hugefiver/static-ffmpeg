@@ -17,7 +17,6 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
-        variant: [default, full, slim]
 
     needs:
       - tag
@@ -42,44 +41,124 @@ jobs:
         with:
           driver: docker-container
 
-      - name: Docker tags
-        id: tags
+      - name: Docker tags default
+        id: tags_default
         env:
           TAG: ${{ needs.tag.outputs.TAG }}
           ARCH: ${{ matrix.arch }}
-          VARIANT: ${{ matrix.variant }}
         run: |
           {
             echo 'tags<<EOF'
-            if [ "$VARIANT" = default ]; then
-              echo "${REGISTRY_IMAGE}:${TAG}-${ARCH}"
-              echo "${REGISTRY_IMAGE}:${TAG}"
-            elif [ "$TAG" = latest ]; then
-              echo "${REGISTRY_IMAGE}:${VARIANT}-${ARCH}"
-              echo "${REGISTRY_IMAGE}:${VARIANT}"
+            echo "${REGISTRY_IMAGE}:${TAG}-${ARCH}"
+            echo "${REGISTRY_IMAGE}:${TAG}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Docker tags full
+        id: tags_full
+        env:
+          TAG: ${{ needs.tag.outputs.TAG }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          {
+            echo 'tags<<EOF'
+            if [ "$TAG" = latest ]; then
+              echo "${REGISTRY_IMAGE}:full-${ARCH}"
+              echo "${REGISTRY_IMAGE}:full"
             else
-              echo "${REGISTRY_IMAGE}:${TAG}-${VARIANT}-${ARCH}"
-              echo "${REGISTRY_IMAGE}:${TAG}-${VARIANT}"
+              echo "${REGISTRY_IMAGE}:${TAG}-full-${ARCH}"
+              echo "${REGISTRY_IMAGE}:${TAG}-full"
             fi
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build and Upload
-        id: docker_build
+      - name: Docker tags slim
+        id: tags_slim
+        env:
+          TAG: ${{ needs.tag.outputs.TAG }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          {
+            echo 'tags<<EOF'
+            if [ "$TAG" = latest ]; then
+              echo "${REGISTRY_IMAGE}:slim-${ARCH}"
+              echo "${REGISTRY_IMAGE}:slim"
+            else
+              echo "${REGISTRY_IMAGE}:${TAG}-slim-${ARCH}"
+              echo "${REGISTRY_IMAGE}:${TAG}-slim"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build shared dependency base
+        timeout-minutes: 360
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ffmpeg-build-base
+          push: false
+          labels: runnumber=${{ github.run_id }}
+          provenance: false
+          platforms: linux/${{ matrix.arch }}
+          cache-from: type=gha,scope=static-ffmpeg-${{ matrix.arch }}-shared
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-shared
+
+      - name: Build and Upload default
+        id: docker_build_default
         timeout-minutes: 360
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ steps.tags_default.outputs.tags }}
           labels: runnumber=${{ github.run_id }}
           load: true
           provenance: false
           platforms: linux/${{ matrix.arch }}
-          cache-from: type=gha,scope=static-ffmpeg-${{ matrix.arch }}-${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-${{ matrix.variant }}
+          cache-from: |
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-shared
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-default
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-default
           build-args: |
-            BUILD_VARIANT=${{ matrix.variant }}
+            BUILD_VARIANT=default
+
+      - name: Build and Upload full
+        id: docker_build_full
+        timeout-minutes: 360
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags_full.outputs.tags }}
+          labels: runnumber=${{ github.run_id }}
+          load: true
+          provenance: false
+          platforms: linux/${{ matrix.arch }}
+          cache-from: |
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-shared
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-full
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-full
+          build-args: |
+            BUILD_VARIANT=full
+
+      - name: Build and Upload slim
+        id: docker_build_slim
+        timeout-minutes: 360
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags_slim.outputs.tags }}
+          labels: runnumber=${{ github.run_id }}
+          load: true
+          provenance: false
+          platforms: linux/${{ matrix.arch }}
+          cache-from: |
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-shared
+            type=gha,scope=static-ffmpeg-${{ matrix.arch }}-slim
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-slim
+          build-args: |
+            BUILD_VARIANT=slim
 
       # - name: Docker save
       #   run: docker image save --output image-${{ matrix.arch }}.tar ${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}-${{ matrix.arch }}

@@ -12,21 +12,56 @@ jobs:
         runs_on:
           - ubicloud-standard-30
           - ubicloud-standard-30-arm
-        variant:
-          - default
-          - full
-          - slim
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+
+      - name: Build shared dependency base
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ffmpeg-build-base
+          push: false
+          cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
+
+      - name: Build default variant
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-${{ matrix.variant }}
+          cache-from: |
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-default
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-default
           build-args: |
-            BUILD_VARIANT=${{ matrix.variant }}
+            BUILD_VARIANT=default
+            ENABLE_FDKAAC=1
+
+      - name: Build full variant
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: |
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-full
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-full
+          build-args: |
+            BUILD_VARIANT=full
+            ENABLE_FDKAAC=1
+
+      - name: Build slim variant
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: |
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
+            type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-slim
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-slim
+          build-args: |
+            BUILD_VARIANT=slim
             ENABLE_FDKAAC=1
