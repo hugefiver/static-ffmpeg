@@ -16,13 +16,17 @@ jobs:
     name: Build image
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runs_on: ubuntu-24.04
+          - arch: arm64
+            runs_on: ubuntu-24.04-arm
 
     needs:
       - tag
 
     timeout-minutes: 360
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
 
