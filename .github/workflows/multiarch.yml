@@ -17,6 +17,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
+        variant: [default, full, slim]
 
     needs:
       - tag
@@ -41,6 +42,28 @@ jobs:
         with:
           driver: docker-container
 
+      - name: Docker tags
+        id: tags
+        env:
+          TAG: ${{ needs.tag.outputs.TAG }}
+          ARCH: ${{ matrix.arch }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          {
+            echo 'tags<<EOF'
+            if [ "$VARIANT" = default ]; then
+              echo "${REGISTRY_IMAGE}:${TAG}-${ARCH}"
+              echo "${REGISTRY_IMAGE}:${TAG}"
+            elif [ "$TAG" = latest ]; then
+              echo "${REGISTRY_IMAGE}:${VARIANT}-${ARCH}"
+              echo "${REGISTRY_IMAGE}:${VARIANT}"
+            else
+              echo "${REGISTRY_IMAGE}:${TAG}-${VARIANT}-${ARCH}"
+              echo "${REGISTRY_IMAGE}:${TAG}-${VARIANT}"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and Upload
         id: docker_build
         timeout-minutes: 360
@@ -48,13 +71,15 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}-${{ matrix.arch }},${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}
+          tags: ${{ steps.tags.outputs.tags }}
           labels: runnumber=${{ github.run_id }}
           load: true
           provenance: false
           platforms: linux/${{ matrix.arch }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=static-ffmpeg-${{ matrix.arch }}-${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=static-ffmpeg-${{ matrix.arch }}-${{ matrix.variant }}
+          build-args: |
+            BUILD_VARIANT=${{ matrix.variant }}
 
       # - name: Docker save
       #   run: docker image save --output image-${{ matrix.arch }}.tar ${{ env.REGISTRY_IMAGE }}:${{ needs.tag.outputs.TAG }}-${{ matrix.arch }}

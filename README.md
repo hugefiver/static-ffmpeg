@@ -43,19 +43,14 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 - [libass](https://github.com/libass/libass)
 - [libbluray](https://www.videolan.org/developers/libbluray.html)
 - [libdav1d](https://code.videolan.org/videolan/dav1d)
-- [libdavs2](https://github.com/pkuvcl/davs2)
 - [libfdk-aac](https://github.com/mstorsjo/fdk-aac) (only if explicitly enabled during build, [see below](#libfdk-aac))
 - [libfreetype](https://freetype.org/)
 - [libfribidi](https://github.com/fribidi/fribidi)
-- [libgme](https://github.com/mcfiredrill/libgme)
-- [libgsm](https://github.com/timothytylee/libgsm)
 - [libharfbuzz](https://github.com/harfbuzz/harfbuzz)
 - [libjxl](https://github.com/libjxl/libjxl)
-- [libkvazaar](https://github.com/ultravideo/kvazaar)
-- [libmodplug](https://github.com/Konstanty/libmodplug)
 - [libmp3lame](https://lame.sourceforge.io/)
 - [libmysofa](https://github.com/hoene/libmysofa)
-- [libopencore](https://sourceforge.net/projects/opencore-amr/)
+- [mimalloc](https://github.com/microsoft/mimalloc)
 - [libopenjpeg](https://www.openjpeg.org)
 - [libopus](https://opus-codec.org)
 - [librabbitmq](https://github.com/alanxz/rabbitmq-c)
@@ -63,20 +58,14 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 - [librsvg](https://gitlab.gnome.org/GNOME/librsvg)
 - [librtmp](https://rtmpdump.mplayerhq.hu/)
 - [librubberband](https://breakfastquay.com/rubberband/)
-- [libshine](https://github.com/toots/shine)
 - [libsnappy](https://google.github.io/snappy/)
 - [libsoxr](https://sourceforge.net/projects/soxr/)
-- [libspeex](https://github.com/xiph/speex)
 - [libsrt](https://github.com/Haivision/srt)
 - [libssh](https://gitlab.com/libssh/libssh-mirror)
 - [libsvtav1](https://gitlab.com/AOMediaCodec/SVT-AV1)
-- [libtheora](https://github.com/xiph/theora)
-- [libtwolame](https://github.com/njh/twolame)
-- [libuavs3d](https://github.com/uavs3/uavs3d)
 - [libva](https://github.com/intel/libva)
 - [libvidstab](https://github.com/georgmartius/vid.stab)
 - [libvmaf](https://github.com/Netflix/vmaf)
-- [libvo-amrwbenc](https://github.com/mstorsjo/vo-amrwbenc)
 - [libvorbis](https://github.com/xiph/vorbis)
 - [libvpl](https://github.com/intel/libvpl)
 - [libvpx](https://github.com/webmproject/libvpx)
@@ -84,15 +73,11 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 - [libwebp](https://chromium.googlesource.com/webm/libwebp)
 - [libx264](https://www.videolan.org/developers/x264.html)
 - [libx265](https://www.videolan.org/developers/x265.html) (multilib with support for 10 and 12 bits)
-- [libxavs2](https://github.com/pkuvcl/xavs2)
-- [libxevd](https://github.com/mpeg5/xevd)
-- [libxeve](https://github.com/mpeg5/xeve)
 - [libxml2](https://gitlab.gnome.org/GNOME/libxml2)
-- [libxvid](https://labs.xvid.com)
 - [libzimg](https://github.com/sekrit-twc/zimg)
 - [libzmq](https://github.com/zeromq/libzmq)
 - [openssl](https://openssl.org)
-- and all native ffmpeg codecs, formats, filters etc.
+- and selected native ffmpeg codecs, formats, filters etc.
 
 ### Files in the image
 
@@ -111,8 +96,16 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 
 `latest` Latest master build.
 
+`full` Full native FFmpeg encoder/decoder/filter profile for the libraries built into this image.
+
+`slim` Smaller profile for common modern codecs, common Linux hardware paths, and a curated filter set.
+
 `MAJOR.MINOR.PATCH[-BUILD]` Specific version of FFmpeg with the features that was in master at the time of tagging.
 `-BUILD` means that was an additional build with that version to add of fix something.
+
+`MAJOR.MINOR.PATCH[-BUILD]-full` and `MAJOR.MINOR.PATCH[-BUILD]-slim` are the matching non-default variant tags for a release.
+
+The default profile keeps the repository's conservative codec list. The full profile does not apply encoder/decoder/filter whitelists, while the slim profile keeps only common modern codecs, common Linux hardware-accelerated paths, and common transcoding, subtitle, quality, and test filters.
 
 ### Security
 
