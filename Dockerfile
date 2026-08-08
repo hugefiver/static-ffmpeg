@@ -67,7 +67,7 @@ ARG CXXFLAGS="-O3 -static-libgcc -fno-strict-overflow -fstack-protector-all -fPI
 ARG LDFLAGS="-Wl,-z,relro,-z,now"
 
 # retry dns and some http codes that might be transient errors
-ARG WGET_OPTS="--retry-on-host-error --retry-on-http-error=429,500,502,503"
+ARG WGET_OPTS="--tries=10 --timeout=60 --waitretry=5 --retry-connrefused --retry-on-host-error --retry-on-http-error=429,500,502,503"
 
 # --no-same-owner as we don't care about uid/gid even if we run as root. fixes invalid gid/uid issue.
 ARG TAR_OPTS="--no-same-owner --extract --file"
@@ -887,7 +887,9 @@ COPY --from=dep-vvenc /usr/local/ /usr/local/
 ARG FFMPEG_VERSION=9.0
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
 ARG FFMPEG_SHA256=ce84a9d01766eacd271bef8fa6447593ccc691801b48ac4e7b9dc90a9483a422
-ADD --checksum=sha256:$FFMPEG_SHA256 $FFMPEG_URL /ffmpeg.tar.bz2
+RUN \
+  wget $WGET_OPTS -O /ffmpeg.tar.bz2 "$FFMPEG_URL" && \
+  echo "$FFMPEG_SHA256  /ffmpeg.tar.bz2" | sha256sum -c -
 # sed changes --toolchain=hardened -pie to -static-pie
 #
 # ldflags stack-size=2097152 is to increase default stack size from 128KB (musl default) to something
