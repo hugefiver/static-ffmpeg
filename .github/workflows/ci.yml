@@ -6,8 +6,10 @@ on:
       - 'master'
 
 jobs:
-  ci:
+  build-base:
+    name: Build shared base (${{ matrix.runs_on }})
     strategy:
+      fail-fast: false
       matrix:
         runs_on:
           - ubicloud-standard-30
@@ -27,32 +29,45 @@ jobs:
           cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
           cache-to: type=gha,mode=max,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
 
-      - name: Build default variant
+  build-variant:
+    name: Build variant (${{ matrix.runs_on }}, ${{ matrix.variant }})
+    needs:
+      - build-base
+    strategy:
+      fail-fast: false
+      matrix:
+        runs_on:
+          - ubicloud-standard-30
+          - ubicloud-standard-30-arm
+        variant:
+          - default
+          - full
+          - slim
+          - shared
+    runs-on: ${{ matrix.runs_on }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build static variant
+        if: ${{ matrix.variant != 'shared' }}
         uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
           build-args: |
-            BUILD_VARIANT=default
+            BUILD_VARIANT=${{ matrix.variant }}
             ENABLE_FDKAAC=1
 
-      - name: Build full variant
+      - name: Build shared variant
+        if: ${{ matrix.variant == 'shared' }}
         uses: docker/build-push-action@v7
         with:
           context: .
+          target: shared
           push: false
           cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
           build-args: |
-            BUILD_VARIANT=full
-            ENABLE_FDKAAC=1
-
-      - name: Build slim variant
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: false
-          cache-from: type=gha,scope=static-ffmpeg-ci-${{ matrix.runs_on }}-shared
-          build-args: |
-            BUILD_VARIANT=slim
             ENABLE_FDKAAC=1

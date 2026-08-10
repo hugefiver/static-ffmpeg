@@ -100,12 +100,14 @@ alias ffprobe='docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" --ent
 
 `slim` Smaller profile for common modern codecs, common Linux hardware paths, and a curated filter set.
 
+`shared` Nix-like runtime closure profile that stores `ffmpeg`, `ffprobe`, and their shared libraries under `/opt/ffmpeg`, with `/ffmpeg` and `/ffprobe` symlinks using relative runtime library paths.
+
 `MAJOR.MINOR.PATCH[-BUILD]` Specific version of FFmpeg with the features that was in master at the time of tagging.
 `-BUILD` means that was an additional build with that version to add of fix something.
 
-`MAJOR.MINOR.PATCH[-BUILD]-full` and `MAJOR.MINOR.PATCH[-BUILD]-slim` are the matching non-default variant tags for a release.
+`MAJOR.MINOR.PATCH[-BUILD]-full`, `MAJOR.MINOR.PATCH[-BUILD]-slim`, and `MAJOR.MINOR.PATCH[-BUILD]-shared` are the matching non-default variant tags for a release.
 
-The default profile keeps the repository's conservative codec list. The full profile does not apply encoder/decoder/filter whitelists, while the slim profile keeps only common modern codecs, common Linux hardware-accelerated paths, and common transcoding, subtitle, quality, and test filters.
+The default profile keeps the repository's conservative codec list. The full profile does not apply encoder/decoder/filter whitelists, the slim profile keeps only common modern codecs, common Linux hardware-accelerated paths, and common transcoding, subtitle, quality, and test filters, while the shared profile keeps the default codec policy but shares the FFmpeg library code through a self-contained `/opt/ffmpeg` runtime closure.
 
 ### Security
 

@@ -459,7 +459,7 @@ ARG LIBRTMP_COMMIT=138fdb258d9fc26f1843fd1b891180416c9dc575
 RUN \
   git clone "$LIBRTMP_URL" && cd rtmpdump && \
   git checkout --recurse-submodules $LIBRTMP_COMMIT && \
-  make SYS=posix SHARED=off -j$(nproc) install
+  make SYS=posix SHARED=off XCFLAGS="$CFLAGS" -j$(nproc) install
 
 FROM base AS dep-filter-extra
 
@@ -1116,6 +1116,188 @@ RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libsvtav1", "-t", "100m
 RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libvvenc", "-t", "100ms", "-f", "null", "-"]
 # x265 regression
 RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libx265", "-t", "100ms", "-f", "null", "-"]
+
+FROM ffmpeg-build-base AS shared-builder
+ARG ENABLE_FDKAAC=
+
+RUN \
+  tar $TAR_OPTS ffmpeg.tar.bz2 && cd ffmpeg* && \
+  patch -u <../patches/mimalloc.patch && \
+  SHARED_VARIANT_FLAGS=" --disable-encoders --disable-decoders --enable-encoder=aac,ac3,ac3_fixed,apng,av1_qsv,flac,gif,h264_qsv,h264_v4l2m2m,hevc_qsv,hevc_v4l2m2m,jpeg2000,jpegls,libaom_av1,libjxl,libmp3lame,libopenjpeg,libopus,librav1e,libsvtav1,libvorbis,libvpx_vp8,libvpx_vp9,libvvenc,libwebp,libwebp_anim,libx264,libx264rgb,libx265,ljpeg,mjpeg,mjpeg_qsv,mpeg2_qsv,mpeg2video,opus,png,rawvideo,text,tiff,vp8_v4l2m2m,vp9_qsv,webvtt,yuv4,zlib --enable-decoder=aac,aac_fixed,aac_latm,ac3,ac3_fixed,apng,av1,av1_qsv,flac,flv,gif,h261,h263,h263_v4l2m2m,h263i,h263p,h264,h264_qsv,h264_v4l2m2m,hevc,hevc_qsv,hevc_v4l2m2m,jpeg2000,jpegls,libaom_av1,libaribb24,libdav1d,libjxl,libopus,librsvg,libvorbis,libvpx_vp8,libvpx_vp9,mjpeg,mjpeg_qsv,mjpegb,mp3,mp3adu,mp3adufloat,mp3float,mp3on4,mp3on4float,mpeg1video,mpeg2_qsv,mpeg2_v4l2m2m,mpeg2video,mpeg4,mpeg4_v4l2m2m,mpegvideo,msmpeg4v1,msmpeg4v2,msmpeg4v3,opus,pcm_s16le,png,rawvideo,srt,text,tiff,vc1,vorbis,vp7,vp8,vp8_qsv,vp8_v4l2m2m,vp9,vp9_qsv,vp9_v4l2m2m,vvc,vvc_qsv,wavpack,wbmp,webp,webvtt,wmv1,wmv2,wmv3,wmv3image,wrapped_avframe,yuv4,zlib" && \
+  FDKAAC_FLAGS=$(if [[ -n "$ENABLE_FDKAAC" ]] ;then echo " --enable-libfdk-aac --enable-nonfree --enable-encoder=libfdk_aac --enable-decoder=libfdk_aac " ;else echo ""; fi) && \
+  ./configure \
+  --prefix=/opt/ffmpeg \
+  --custom_allocator=mimalloc \
+  --pkg-config-flags="--static" \
+  --extra-cflags="-fopenmp -O3 -fPIC -ffunction-sections -fdata-sections" \
+  --extra-ldflags='-fopenmp -Wl,--allow-multiple-definition -Wl,-z,stack-size=2097152 -Wl,--as-needed -Wl,--gc-sections -Wl,-rpath,$$ORIGIN/../lib' \
+  --extra-ldexeflags='-Wl,--as-needed -Wl,--gc-sections -Wl,-rpath,$$ORIGIN/../lib' \
+  --toolchain=hardened \
+  --disable-debug \
+  --enable-shared \
+  --disable-static \
+  --disable-ffplay \
+  --enable-gpl \
+  --enable-version3 \
+  $SHARED_VARIANT_FLAGS \
+  $FDKAAC_FLAGS \
+  --enable-fontconfig \
+  --enable-gray \
+  --enable-iconv \
+  --enable-lcms2 \
+  --enable-libaom \
+  --enable-libaribb24 \
+  --enable-libass \
+  --enable-libbluray \
+  --enable-libdav1d \
+  --enable-libfreetype \
+  --enable-libfribidi \
+  --enable-libharfbuzz \
+  --enable-libjxl \
+  --enable-libmp3lame \
+  --enable-libmysofa \
+  --enable-libopenjpeg \
+  --enable-libopus \
+  --enable-librabbitmq \
+  --enable-librav1e \
+  --enable-librsvg \
+  --enable-librtmp \
+  --enable-librubberband \
+  --enable-libsnappy \
+  --enable-libsoxr \
+  --enable-libsrt \
+  --enable-libssh \
+  --enable-libsvtav1 \
+  --enable-libvidstab \
+  --enable-libvmaf \
+  --enable-libvorbis \
+  --enable-libvpl \
+  --enable-libvpx \
+  --enable-libvvenc \
+  --enable-libwebp \
+  --enable-libx264 \
+  --enable-libx265 \
+  --enable-libxml2 \
+  --enable-libzimg \
+  --enable-libzmq \
+  --enable-openssl \
+  --disable-network \
+  || (cat ffbuild/config.log ; false) \
+  && make -j$(nproc) install
+
+# some basic fonts that don't take up much space
+RUN \
+  apk add $APK_OPTS patchelf font-terminus font-inconsolata font-dejavu font-awesome && \
+  patchelf --set-rpath '$ORIGIN/../lib' /opt/ffmpeg/bin/ffmpeg /opt/ffmpeg/bin/ffprobe && \
+  find /opt/ffmpeg/lib -maxdepth 1 -type f -name '*.so*' -exec patchelf --set-rpath '$ORIGIN' {} +
+
+RUN \
+  mkdir -p /shared-root/opt/ffmpeg /shared-root/lib /shared-root/etc/ssl /shared-root/etc/fonts /shared-root/usr/share /shared-root/var/cache && \
+  cp -a /opt/ffmpeg/bin /opt/ffmpeg/lib /shared-root/opt/ffmpeg/ && \
+  cp -a /opt/ffmpeg/share/doc/ffmpeg /shared-root/doc && \
+  cp -a /etc/ssl/cert.pem /shared-root/etc/ssl/cert.pem && \
+  cp -a /etc/fonts/. /shared-root/etc/fonts/ && \
+  cp -a /usr/share/fonts/ /shared-root/usr/share/fonts/ && \
+  cp -a /usr/share/consolefonts/ /shared-root/usr/share/consolefonts/ && \
+  cp -a /var/cache/fontconfig/ /shared-root/var/cache/fontconfig/ && \
+  cp -L /lib/ld-musl-*.so.1 /shared-root/lib/ && \
+  for file in /opt/ffmpeg/bin/ffmpeg /opt/ffmpeg/bin/ffprobe /opt/ffmpeg/lib/*.so*; do \
+    LD_LIBRARY_PATH=/opt/ffmpeg/lib ldd "$file" | awk '{ if ($2 == "=>") print $3; else if ($1 ~ /^\//) print $1 }'; \
+  done | sort -u | while read -r lib; do \
+    case "$lib" in \
+      /lib/ld-musl-*.so.1) ;; \
+      */ld-musl-*.so.1) ;; \
+      /opt/ffmpeg/lib/*) ;; \
+      "") ;; \
+      *) cp -L "$lib" /shared-root/opt/ffmpeg/lib/ ;; \
+    esac; \
+  done && \
+  for lib in /shared-root/opt/ffmpeg/lib/*.so*; do \
+    ln -sf "../opt/ffmpeg/lib/$(basename "$lib")" "/shared-root/lib/$(basename "$lib")"; \
+  done && \
+  ln -sf opt/ffmpeg/bin/ffmpeg /shared-root/ffmpeg && \
+  ln -sf opt/ffmpeg/bin/ffprobe /shared-root/ffprobe
+
+# Shared variant uses dynamic closure checks instead of checkdupsym/checkelf's
+# no-external-libs static-binary policy.
+RUN \
+  strip --strip-unneeded /shared-root/opt/ffmpeg/bin/ffmpeg /shared-root/opt/ffmpeg/bin/ffprobe && \
+  find /shared-root/opt/ffmpeg/lib -maxdepth 1 -type f -name '*.so*' -exec strip --strip-unneeded {} + && \
+  readelf -d /shared-root/opt/ffmpeg/bin/ffmpeg | grep -F '$ORIGIN/../lib' && \
+  readelf -d /shared-root/opt/ffmpeg/bin/ffprobe | grep -F '$ORIGIN/../lib' && \
+  test -z "$(find /shared-root/opt/ffmpeg/lib -maxdepth 1 -type f -name '*.a' -print -quit)"
+
+RUN \
+  EXPAT_VERSION=$(pkg-config --modversion expat) \
+  FFTW_VERSION=$(pkg-config --modversion fftw3) \
+  FONTCONFIG_VERSION=$(pkg-config --modversion fontconfig) \
+  FREETYPE_VERSION=$(pkg-config --modversion freetype2) \
+  FRIBIDI_VERSION=$(pkg-config --modversion fribidi) \
+  LIBSAMPLERATE_VERSION=$(pkg-config --modversion samplerate) \
+  LIBXML2_VERSION=$(pkg-config --modversion libxml-2.0) \
+  OPENSSL_VERSION=$(pkg-config --modversion openssl) \
+  SNAPPY_VERSION=$(apk info -a snappy $APK_OPTS | head -n1 | awk '{print $1}' | sed -e 's/snappy-//') \
+  SOXR_VERSION=$(pkg-config --modversion soxr) \
+  jq -n \
+  '{ \
+  variant: "shared", \
+  expat: env.EXPAT_VERSION, \
+  "libfdk-aac": env.FDK_AAC_VERSION, \
+  ffmpeg: env.FFMPEG_VERSION, \
+  fftw: env.FFTW_VERSION, \
+  fontconfig: env.FONTCONFIG_VERSION, \
+  lcms2: env.LCMS2_VERSION, \
+  libaom: env.AOM_VERSION, \
+  libaribb24: env.LIBARIBB24_VERSION, \
+  libass: env.LIBASS_VERSION, \
+  libbluray: env.LIBBLURAY_VERSION, \
+  libdav1d: env.DAV1D_VERSION, \
+  libfreetype: env.FREETYPE_VERSION, \
+  libfribidi: env.FRIBIDI_VERSION, \
+  libharfbuzz: env.LIBHARFBUZZ_VERSION, \
+  libjxl: env.LIBJXL_VERSION, \
+  libmp3lame: env.MP3LAME_VERSION, \
+  libmysofa: env.LIBMYSOFA_VERSION, \
+  mimalloc: env.MIMALLOC_VERSION, \
+  libogg: env.OGG_VERSION, \
+  libopenjpeg: env.OPENJPEG_VERSION, \
+  libopus: env.OPUS_VERSION, \
+  librabbitmq: env.LIBRABBITMQ_VERSION, \
+  librav1e: env.RAV1E_VERSION, \
+  librsvg: env.LIBRSVG_VERSION, \
+  librtmp: env.LIBRTMP_COMMIT, \
+  librubberband: env.RUBBERBAND_VERSION, \
+  libsamplerate: env.LIBSAMPLERATE_VERSION, \
+  libsnappy: env.SNAPPY_VERSION, \
+  libsoxr: env.SOXR_VERSION, \
+  libsrt: env.SRT_VERSION, \
+  libssh: env.LIBSSH_VERSION, \
+  libsvtav1: env.SVTAV1_VERSION, \
+  libva: env.LIBVA_VERSION, \
+  libvidstab: env.VIDSTAB_VERSION, \
+  libvmaf: env.VMAF_VERSION, \
+  libvorbis: env.VORBIS_VERSION, \
+  libvpl: env.LIBVPL_VERSION, \
+  libvpx: env.VPX_VERSION, \
+  libvvenc: env.VVENC_VERSION, \
+  libwebp: env.LIBWEBP_VERSION, \
+  libx264: env.X264_VERSION, \
+  libx265: env.X265_VERSION, \
+  libxml2: env.LIBXML2_VERSION, \
+  libzimg: env.ZIMG_VERSION, \
+  libzmq: env.LIBZMQ_VERSION, \
+  openssl: env.OPENSSL_VERSION, \
+  }' > /shared-root/versions.json
+
+RUN \
+  chroot /shared-root /ffmpeg -version && \
+  chroot /shared-root /ffprobe -version && \
+  chroot /shared-root /ffmpeg -hide_banner -buildconf && \
+  chroot /shared-root /ffmpeg -v error -f lavfi -i testsrc -c:v libx264 -t 100ms -f null -
+
+FROM scratch AS shared
+COPY --from=shared-builder /shared-root/ /
+ENTRYPOINT ["/ffmpeg"]
 
 # clamp all files into one layer
 FROM scratch AS final2
